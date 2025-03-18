@@ -5,28 +5,31 @@ import '../services/auth_service.dart';
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
   User? _user;
-
-  User? get user => _user; // Exponer el usuario
-
   bool _isLoading = false;
+
+  User? get user => _user;
   bool get isLoading => _isLoading;
 
   void setLoading(bool value) {
+    if (_isLoading == value) return; // Evita renders innecesarios
     _isLoading = value;
-    notifyListeners(); // 🔥 Notifica cambios a la UI
+    notifyListeners();
   }
 
   Future<bool> login(String email, String password) async {
     setLoading(true);
-    _user = await _authService.signIn(email, password);
+    final newUser = await _authService.signIn(email, password);
+    if (newUser != _user) { // Solo notifica si hay un cambio real
+      _user = newUser;
+      notifyListeners();
+    }
     setLoading(false);
-    notifyListeners(); // 🔥 Dispara reconstrucción en los widgets dependientes
     return _user != null;
   }
 
   Future<void> logout() async {
     await _authService.signOut();
     _user = null;
-    notifyListeners(); // 🔥 Notifica a la UI que ya no hay usuario autenticado
+    notifyListeners(); // Solo notifica cuando realmente cambia el estado
   }
 }
