@@ -10,6 +10,7 @@ dependencies:
   amplify_flutter: ^2.6.1
   amplify_auth_cognito: ^2.6.1
   amplify_api: ^2.6.1
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:
