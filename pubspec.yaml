@@ -1,0 +1,19 @@
+name: bookyo_flutter
+description: Una applicacion Flutter para Bookyo
+
+environment:
+  sdk: ">=2.17.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  amplify_flutter: ^2.6.1
+  amplify_auth_cognito: ^2.6.1
+  amplify_api: ^2.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
