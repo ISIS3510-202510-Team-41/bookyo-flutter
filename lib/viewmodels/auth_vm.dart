@@ -10,6 +10,8 @@ class AuthViewModel extends ChangeNotifier {
   User? get user => _user;
   bool get isLoading => _isLoading;
 
+  bool? get isLoggedIn => null;
+
   void setLoading(bool value) {
     if (_isLoading == value) return; // Evita renders innecesarios
     _isLoading = value;
@@ -32,4 +34,6 @@ class AuthViewModel extends ChangeNotifier {
     _user = null;
     notifyListeners(); // Solo notifica cuando realmente cambia el estado
   }
+
+  register(String text, String text2) {}
 }
