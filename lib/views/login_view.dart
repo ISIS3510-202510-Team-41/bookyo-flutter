@@ -12,6 +12,7 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+   bool isLoading = false;
 
   @override
   void dispose() {
@@ -22,7 +23,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel = Provider.of<AuthViewModel>(context);
+    final authViewModel = context.watch<AuthViewModel>();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -61,25 +62,45 @@ class _LoginViewState extends State<LoginView> {
                 ),
                 obscureText: true,
               ),
-              SizedBox(height: 30),
+                SizedBox(height: 30),
 
-              // Botón de Ingresar
-              ElevatedButton(
-                onPressed: () async {
-                  bool success = await authViewModel.login(emailController.text, passwordController.text);
-                  if (success) {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeView()));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error al iniciar sesión")));
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text("Ingresar", style: TextStyle(fontSize: 18)),
-              ),
-              SizedBox(height: 10),
+                // Botón de Ingresar
+ElevatedButton(
+  onPressed: isLoading
+      ? null
+      : () async {
+          setState(() => isLoading = true);
+
+          bool success = await authViewModel.login(
+            emailController.text,
+            passwordController.text,
+          );
+
+          if (success) {
+            if (!mounted) return; // 🔹 Evita errores si el usuario sale de la pantalla antes
+
+            print("🔄 Redirigiendo a HomeView...");
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => HomeView()),
+            );
+          }
+
+          setState(() => isLoading = false);
+        },
+  style: ElevatedButton.styleFrom(
+    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  ),
+  child: isLoading
+      ? SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+        )
+      : Text("Ingresar", style: TextStyle(fontSize: 18)),
+),
+                SizedBox(height: 10),
 
               // Botón de Registrarse
               OutlinedButton(

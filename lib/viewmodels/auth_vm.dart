@@ -45,22 +45,28 @@ class AuthViewModel with ChangeNotifier {
   }
 
   Future<bool> login(String email, String password) async {
-    try {
-      await _ensureAmplifyConfigured(); // 🔹 Esperar hasta que Amplify esté listo
+  try {
+    await _ensureAmplifyConfigured();
 
-      print("🔐 Intentando iniciar sesión con: $email");
+    print("🔐 Intentando iniciar sesión con: $email");
 
-      SignInResult result = await Amplify.Auth.signIn(username: email, password: password);
-      isLoggedIn = result.isSignedIn;
+    SignInResult result = await Amplify.Auth.signIn(username: email, password: password);
+
+    if (result.isSignedIn) {
+      isLoggedIn = true;
       userEmail = email;
-      notifyListeners();
+      notifyListeners(); // 🔹 Asegurar que la UI se actualice
       print("✅ Usuario autenticado correctamente.");
-      return isLoggedIn;
-    } catch (e) {
-      print("❌ Error en login: $e");
+      return true;
+    } else {
+      print("⚠️ Usuario NO autenticado.");
       return false;
     }
+  } catch (e) {
+    print("❌ Error en login: $e");
+    return false;
   }
+}
 
   Future<void> logout() async {
     try {
