@@ -18,7 +18,7 @@ class _SplashViewState extends State<SplashView> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => (authViewModel.isLoggedIn ?? false) ? HomeView() : LoginView(),
+          builder: (context) => (authViewModel.isLoggedIn) ? HomeView() : LoginView(),
         ),
       );
     });
@@ -29,7 +29,15 @@ class _SplashViewState extends State<SplashView> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: Image.asset('assets/logo.png', width: 200), // Logo en Splash Screen
+        child: Image.asset(
+          'assets/BOOKYO_LOGO.png',  // Asegúrate de que esta es la ruta correcta
+          width: 200,
+          height: 200,
+          fit: BoxFit.contain,  // Para asegurar que se muestra correctamente
+          errorBuilder: (context, error, stackTrace) {
+            return Text("No se pudo cargar la imagen", style: TextStyle(color: Colors.red));
+          },
+        ),
       ),
     );
   }

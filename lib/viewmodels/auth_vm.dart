@@ -1,39 +1,110 @@
 import 'package:flutter/material.dart';
-import '../models/user.dart';
-import '../services/auth_service.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
 
-class AuthViewModel extends ChangeNotifier {
-  final AuthService _authService = AuthService();
-  User? _user;
-  bool _isLoading = false;
+class AuthViewModel with ChangeNotifier {
+  bool isLoggedIn = false;
+  String? userEmail;
 
-  User? get user => _user;
-  bool get isLoading => _isLoading;
+  get user => null;
 
-  bool? get isLoggedIn => null;
+  /// 🔹 Método para esperar hasta que Amplify esté configurado antes de hacer login o registro
+  Future<void> _ensureAmplifyConfigured() async {
+    int retries = 5;
+    while (!Amplify.isConfigured && retries > 0) {
+      print("⏳ Esperando configuración de Amplify...");
+      await Future.delayed(Duration(seconds: 1));
+      retries--;
+    }
+    if (!Amplify.isConfigured) {
+      print("❌ Error: Amplify no está configurado después de varios intentos.");
+      throw Exception("Amplify no se configuró correctamente.");
+    }
+  }
 
-  void setLoading(bool value) {
-    if (_isLoading == value) return; // Evita renders innecesarios
-    _isLoading = value;
-    notifyListeners();
+  Future<bool> register(String email, String password) async {
+    try {
+      await _ensureAmplifyConfigured(); // 🔹 Esperar hasta que Amplify esté listo
+
+      print("📝 Registrando usuario con email: $email");
+
+      SignUpResult result = await Amplify.Auth.signUp(
+        username: email, // ✅ Usando `email` como username
+        password: password,
+        options: SignUpOptions(userAttributes: {AuthUserAttributeKey.email: email}),
+      );
+
+      if (result.isSignUpComplete) {
+        print("✅ Usuario registrado con éxito.");
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("❌ Error en el registro: $e");
+      return false;
+    }
   }
 
   Future<bool> login(String email, String password) async {
-    setLoading(true);
-    final newUser = await _authService.signIn(email, password);
-    if (newUser != _user) { // Solo notifica si hay un cambio real
-      _user = newUser;
+    try {
+      await _ensureAmplifyConfigured(); // 🔹 Esperar hasta que Amplify esté listo
+
+      print("🔐 Intentando iniciar sesión con: $email");
+
+      SignInResult result = await Amplify.Auth.signIn(username: email, password: password);
+      isLoggedIn = result.isSignedIn;
+      userEmail = email;
       notifyListeners();
+      print("✅ Usuario autenticado correctamente.");
+      return isLoggedIn;
+    } catch (e) {
+      print("❌ Error en login: $e");
+      return false;
     }
-    setLoading(false);
-    return _user != null;
   }
 
   Future<void> logout() async {
-    await _authService.signOut();
-    _user = null;
-    notifyListeners(); // Solo notifica cuando realmente cambia el estado
+    try {
+      await _ensureAmplifyConfigured();
+      await Amplify.Auth.signOut();
+      isLoggedIn = false;
+      notifyListeners();
+      print("✅ Usuario cerró sesión correctamente.");
+    } catch (e) {
+      print("❌ Error al cerrar sesión: $e");
+    }
   }
 
-  register(String text, String text2) {}
+  /// 🔹 Método para verificar el código enviado por AWS Cognito
+  Future<bool> verifyEmail(String email, String code) async {
+    try {
+      print("🔹 Verificando código para: $email");
+
+      SignUpResult result = await Amplify.Auth.confirmSignUp(
+        username: email,
+        confirmationCode: code,
+      );
+
+      if (result.isSignUpComplete) {
+        print("✅ Cuenta verificada correctamente.");
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("❌ Error en la verificación: $e");
+      return false;
+    }
+  }
+
+  /// 🔹 Método para reenviar el código de verificación
+  Future<bool> resendVerificationCode(String email) async {
+    try {
+      print("🔄 Reenviando código a: $email");
+
+      await Amplify.Auth.resendSignUpCode(username: email);
+      return true;
+    } catch (e) {
+      print("❌ Error al reenviar código: $e");
+      return false;
+    }
+  }
 }
