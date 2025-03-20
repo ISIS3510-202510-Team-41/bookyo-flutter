@@ -46,7 +46,7 @@ class _RegisterViewState extends State<RegisterView> {
   void _showToast(BuildContext context, String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: TextStyle(color: Colors.white)),
+        content: Text(message, style: TextStyle(color: Colors.white, fontFamily: 'Parkinsans')),
         backgroundColor: isError ? Colors.red : Colors.green,
         duration: Duration(seconds: 3),
       ),
@@ -94,63 +94,123 @@ class _RegisterViewState extends State<RegisterView> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // 📝 Título
-                  Text(
-                    "Crear Cuenta",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 30),
-
-                  // 📧 Campo de Email
-                  TextFormField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      labelText: "Correo Electrónico",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      prefixIcon: Icon(Icons.email),
+                    // Logo
+                    Image.asset(
+                      'assets/BOOKYO_LOGO.png', // Asegúrate de que la imagen está en la carpeta assets
+                      height: 200,
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: _validateEmail,
-                  ),
-                  SizedBox(height: 16),
+                    SizedBox(height: 0),
 
-                  // 🔒 Campo de Contraseña
-                  TextFormField(
-                    controller: passwordController,
-                    decoration: InputDecoration(
-                      labelText: "Contraseña",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      prefixIcon: Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
+                    // 📝 Título
+                    Text(
+                        "Welcome to Bookyo!",
+                      style: TextStyle(
+                      fontSize: 28, 
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Parkinsans',
                       ),
                     ),
-                    obscureText: _obscurePassword,
-                    validator: _validatePassword,
-                  ),
-                  SizedBox(height: 30),
+                    SizedBox(height: 30),
 
-                  // 🟢 Botón de Registro
-                  isLoading
-                      ? CircularProgressIndicator()
-                      : ElevatedButton(
-                          onPressed: () => _handleRegister(authViewModel),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text("Registrarse", style: TextStyle(fontSize: 18)),
+                    // 👤 Campo de Nombre de Usuario
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: "Username",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return "El nombre de usuario es obligatorio";
+                        if (value.length < 3) return "Debe tener al menos 3 caracteres";
+                        return null;
+                      },
+                      style: TextStyle(fontFamily: 'Parkinsans'),
+                    ),
+                    SizedBox(height: 16),
+
+                    // 📧 Campo de Email
+                    TextFormField(
+                      controller: emailController,
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: _validateEmail,
+                      style: TextStyle(fontFamily: 'Parkinsans'),
+                    ),
+                    SizedBox(height: 16),
+
+                    // 🔒 Campo de Contraseña
+                    TextFormField(
+                      controller: passwordController,
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        prefixIcon: Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
                         ),
-                  SizedBox(height: 20),
+                      ),
+                      obscureText: _obscurePassword,
+                      validator: _validatePassword,
+                      style: TextStyle(fontFamily: 'Parkinsans'),
+                    ),
+                    SizedBox(height: 16),
 
-                  // 🔄 Volver al Login
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text("¿Ya tienes una cuenta? Inicia sesión"),
-                  ),
+                    // 🔒 Campo de Reingresar Contraseña
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: "Re-enter Password",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                        prefixIcon: Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                      ),
+                      obscureText: _obscurePassword,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return "Re-entering the password is mandatory";
+                        if (value != passwordController.text) return "Passwords do not match";
+                        return null;
+                      },
+                      style: TextStyle(fontFamily: 'Parkinsans'),
+                    ),
+                    SizedBox(height: 16),
+
+                    // 🟢 Botón de Registro
+                    isLoading
+                      ? CircularProgressIndicator()
+                        : ElevatedButton(
+                        onPressed: () => _handleRegister(authViewModel),
+                        style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: Color(0xFFB6EB7A), // Mismo color verde claro
+                        fixedSize: Size(MediaQuery.of(context).size.width / 2, 50), // Mismo ancho que el otro botón
+                        ),
+                        child: Text("Sign in", style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans')),
+                        ),
+                        SizedBox(height: 20),
+
+                      // 🔄 Volver al Login
+                      TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color.fromARGB(255, 16, 134, 55), // Cambia el color del texto aquí
+                      ),
+                      child: Text(
+                        "¿Ya tienes una cuenta? Inicia sesión",
+                        style: TextStyle(fontSize: 16, fontFamily: 'Parkinsans'), // Ajuste opcional de tamaño de fuente
+                      ),
+                      ),
                 ],
               ),
             ),
