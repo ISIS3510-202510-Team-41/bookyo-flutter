@@ -13,6 +13,7 @@ dependencies:
   provider: ^6.1.2
   amplify_analytics_pinpoint: ^2.6.1
   amplify_api: ^2.6.1
+  amplify_datastore: ^2.6.1
 
 dev_dependencies:
   flutter_test:
