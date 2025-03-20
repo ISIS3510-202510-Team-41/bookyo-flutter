@@ -44,9 +44,20 @@ class AuthViewModel with ChangeNotifier {
     }
   }
 
-  Future<bool> login(String email, String password) async {
+Future<bool> login(String email, String password) async {
   try {
-    await _ensureAmplifyConfigured();
+    // 🔹 Configurar Amplify solo si es necesario
+    if (!Amplify.isConfigured) {
+      await _ensureAmplifyConfigured();
+    }
+
+    // 🔹 Cerrar sesión si hay una sesión activa
+    try {
+      await Amplify.Auth.signOut();
+      print("🔄 Sesión cerrada antes de iniciar sesión.");
+    } catch (e) {
+      print("⚠️ No se pudo cerrar sesión antes de iniciar sesión: $e");
+    }
 
     print("🔐 Intentando iniciar sesión con: $email");
 
@@ -67,6 +78,7 @@ class AuthViewModel with ChangeNotifier {
     return false;
   }
 }
+
 
   Future<void> logout() async {
     try {

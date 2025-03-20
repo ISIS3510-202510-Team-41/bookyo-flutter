@@ -12,19 +12,46 @@ class UserProfileView extends StatelessWidget {
       appBar: AppBar(title: Text("User Profile")),
       body: Center(
         child: Column(
-          children: [
-            CircleAvatar(radius: 50, backgroundColor: Colors.grey[300]),
+          mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+            CircleAvatar(
+              radius: 50,
+              backgroundImage: authViewModel.user?.photoUrl != null
+                ? NetworkImage(authViewModel.user!.photoUrl!)
+                : null,
+              backgroundColor: Colors.grey[300],
+              child: authViewModel.user?.photoUrl == null
+                ? Icon(Icons.person, size: 50, color: Colors.white)
+                : null,
+            ),
             SizedBox(height: 20),
-            Text("Usuario: ${authViewModel.user?.email ?? 'No disponible'}"),
+            Text(
+              "Nombre: ${authViewModel.user?.displayName ?? 'No disponible'}",
+              style: TextStyle(fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            Text(
+              "Email: ${authViewModel.user?.email ?? 'No disponible'}",
+              style: TextStyle(fontSize: 18),
+            ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await authViewModel.logout();
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginView()));
+              await authViewModel.logout();
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginView()));
               },
-              child: Text("Logout"),
+              style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: Color(0xFFB6EB7A),
+              fixedSize: Size(MediaQuery.of(context).size.width / 2, 50),
+              ),
+              child: Text(
+              "Logout",
+              style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans'),
+              ),
             ),
-          ],
+            SizedBox(height: 20),
+            ],
         ),
       ),
     );

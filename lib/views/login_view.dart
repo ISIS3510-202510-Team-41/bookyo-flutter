@@ -12,7 +12,8 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-   bool isLoading = false;
+  bool isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -34,19 +35,19 @@ class _LoginViewState extends State<LoginView> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Título
-              Text(
-                "Iniciar Sesión",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              // Logo
+              Image.asset(
+                'assets/BOOKYO_LOGO.png', // Asegúrate de que la imagen está en la carpeta assets
+                height: 200,
               ),
-              SizedBox(height: 40),
+              SizedBox(height: 30),
 
               // Campo de Email
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
                   labelText: "Email",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                   prefixIcon: Icon(Icons.email),
                 ),
               ),
@@ -56,62 +57,80 @@ class _LoginViewState extends State<LoginView> {
               TextField(
                 controller: passwordController,
                 decoration: InputDecoration(
-                  labelText: "Contraseña",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  labelText: "Password",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                   prefixIcon: Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: _obscurePassword,
               ),
-                SizedBox(height: 30),
+              SizedBox(height: 30),
 
-                // Botón de Ingresar
-ElevatedButton(
-  onPressed: isLoading
-      ? null
-      : () async {
-          setState(() => isLoading = true);
+              // Botón de Ingresar
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 2,
+                child: ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          setState(() => isLoading = true);
 
-          bool success = await authViewModel.login(
-            emailController.text,
-            passwordController.text,
-          );
+                          bool success = await authViewModel.login(
+                            emailController.text,
+                            passwordController.text,
+                          );
 
-          if (success) {
-            if (!mounted) return; // 🔹 Evita errores si el usuario sale de la pantalla antes
+                          if (success) {
+                            if (!mounted) return; // Evita errores si el usuario sale de la pantalla antes
 
-            print("🔄 Redirigiendo a HomeView...");
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => HomeView()),
-            );
-          }
+                            print("🔄 Redirigiendo a HomeView...");
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => HomeView()),
+                            );
+                          }
 
-          setState(() => isLoading = false);
-        },
-  style: ElevatedButton.styleFrom(
-    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  ),
-  child: isLoading
-      ? SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-        )
-      : Text("Ingresar", style: TextStyle(fontSize: 18)),
-),
-                SizedBox(height: 10),
+                          setState(() => isLoading = false);
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFB6EB7A),
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isLoading
+                      ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text("Login", style: TextStyle(fontSize: 18, color: Colors.black)),
+                ),
+              ),
+              SizedBox(height: 10),
 
               // Botón de Registrarse
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => RegisterView()));
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 2,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => RegisterView()));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFB6EB7A),
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text("Register", style: TextStyle(fontSize: 18, color: Colors.black)),
                 ),
-                child: Text("Registrarse", style: TextStyle(fontSize: 18)),
               ),
             ],
           ),

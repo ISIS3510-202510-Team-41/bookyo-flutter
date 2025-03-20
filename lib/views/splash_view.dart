@@ -31,8 +31,8 @@ class _SplashViewState extends State<SplashView> {
       body: Center(
         child: Image.asset(
           'assets/BOOKYO_LOGO.png',  // Asegúrate de que esta es la ruta correcta
-          width: 200,
-          height: 200,
+          width: 250,
+          height: 250,
           fit: BoxFit.contain,  // Para asegurar que se muestra correctamente
           errorBuilder: (context, error, stackTrace) {
             return Text("No se pudo cargar la imagen", style: TextStyle(color: Colors.red));
