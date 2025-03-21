@@ -51,12 +51,12 @@ Future<bool> login(String email, String password) async {
       await _ensureAmplifyConfigured();
     }
 
-    // 🔹 Cerrar sesión si hay una sesión activa
-    try {
+    // 🔹 Verificar si ya hay un usuario autenticado
+    AuthSession session = await Amplify.Auth.fetchAuthSession();
+    if (session.isSignedIn) {
+      print("🔄 Un usuario ya está autenticado. Cerrando sesión...");
       await Amplify.Auth.signOut();
-      print("🔄 Sesión cerrada antes de iniciar sesión.");
-    } catch (e) {
-      print("⚠️ No se pudo cerrar sesión antes de iniciar sesión: $e");
+      await Future.delayed(Duration(seconds: 1)); // 🔹 Espera para asegurarse de que la sesión se cierre completamente
     }
 
     print("🔐 Intentando iniciar sesión con: $email");

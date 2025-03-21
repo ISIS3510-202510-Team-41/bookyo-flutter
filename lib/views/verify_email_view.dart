@@ -4,7 +4,7 @@ import '../viewmodels/auth_vm.dart';
 import 'login_view.dart';
 
 class VerifyEmailView extends StatefulWidget {
-  final String email; // ✅ Se pasa el email del usuario registrado
+  final String email; // ✅ User's registered email
 
   VerifyEmailView({required this.email});
 
@@ -23,7 +23,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     super.dispose();
   }
 
-  /// 🔹 Mostrar mensaje Toast
+  /// 🔹 Show Toast message
   void _showToast(BuildContext context, String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -51,74 +51,74 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // 📝 Título
+                  // 📝 Title
                   Text(
-                    "Verificar Correo",
+                    "Verify Email",
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 10),
                   Text(
-                    "Introduce el código de verificación enviado a:",
+                    "Enter the verification code sent to:",
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 5),
                   Text(
-                    widget.email, // ✅ Muestra el email registrado
+                    widget.email, // ✅ Display registered email
                     style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 30),
 
-                  // 🔢 Campo de Código de Verificación
+                  // 🔢 Verification Code Field
                   TextFormField(
                     controller: codeController,
                     decoration: InputDecoration(
-                      labelText: "Código de Verificación",
+                      labelText: "Verification Code",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                       prefixIcon: Icon(Icons.verified),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
-                      if (value == null || value.isEmpty) return "El código es obligatorio";
-                      if (value.length != 6) return "Debe ser un código de 6 dígitos";
+                      if (value == null || value.isEmpty) return "The code is required";
+                      if (value.length != 6) return "Must be a 6-digit code";
                       return null;
                     },
                   ),
                   SizedBox(height: 30),
 
-                  // 🟢 Botón de Verificar
-                    isLoading
+                  // 🟢 Verify Button
+                  isLoading
                       ? CircularProgressIndicator()
                       : ElevatedButton(
-                        onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          setState(() => isLoading = true);
-                          bool success = await authViewModel.verifyEmail(widget.email, codeController.text);
-                          setState(() => isLoading = false);
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+                              setState(() => isLoading = true);
+                              bool success = await authViewModel.verifyEmail(widget.email, codeController.text);
+                              setState(() => isLoading = false);
 
-                          if (success) {
-                          _showToast(context, "Cuenta verificada con éxito.");
-                          Future.delayed(Duration(seconds: 2), () {
-                            Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => LoginView()),
-                            );
-                          });
-                          } else {
-                          _showToast(context, "Código incorrecto o expirado.", isError: true);
-                          }
-                        }
-                        },
-                        style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFB6EB7A), // Added color
-                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              if (success) {
+                                _showToast(context, "Account successfully verified.");
+                                Future.delayed(Duration(seconds: 2), () {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => LoginView()),
+                                  );
+                                });
+                              } else {
+                                _showToast(context, "Incorrect or expired code.", isError: true);
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFFB6EB7A), // Added color
+                            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text("Verify", style: TextStyle(fontSize: 18, color: Colors.black)),
                         ),
-                        child: Text("Verificar", style: TextStyle(fontSize: 18)),
-                      ),
-                    SizedBox(height: 20),
+                  SizedBox(height: 20),
 
-                  // 🔄 Reenviar Código
+                  // 🔄 Resend Code
                   TextButton(
                     onPressed: () async {
                       setState(() => isLoading = true);
@@ -126,12 +126,15 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                       setState(() => isLoading = false);
 
                       if (resent) {
-                        _showToast(context, "Código reenviado a tu correo.");
+                        _showToast(context, "Code resent to your email.");
                       } else {
-                        _showToast(context, "No se pudo reenviar el código.", isError: true);
+                        _showToast(context, "Failed to resend the code.", isError: true);
                       }
                     },
-                    child: Text("¿No recibiste el código? Reenviar"),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.green[800], // Dark green color
+                    ),
+                    child: Text("Didn't receive the code? Resend"),
                   ),
                 ],
               ),

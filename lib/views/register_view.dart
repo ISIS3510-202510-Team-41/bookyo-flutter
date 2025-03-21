@@ -188,27 +188,27 @@ class _RegisterViewState extends State<RegisterView> {
                     // 🟢 Botón de Registro
                     isLoading
                       ? CircularProgressIndicator()
-                        : ElevatedButton(
-                        onPressed: () => _handleRegister(authViewModel),
-                        style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        backgroundColor: Color(0xFFB6EB7A), // Mismo color verde claro
-                        fixedSize: Size(MediaQuery.of(context).size.width / 2, 50), // Mismo ancho que el otro botón
-                        ),
-                        child: Text("Sign in", style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans')),
-                        ),
-                        SizedBox(height: 20),
+                      : ElevatedButton(
+                      onPressed: () => _handleRegister(authViewModel),
+                      style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Color(0xFFB6EB7A), // Same light green color
+                      fixedSize: Size(MediaQuery.of(context).size.width / 2, 50), // Same width as the other button
+                      ),
+                      child: Text("Register", style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans')),
+                      ),
+                      SizedBox(height: 20),
 
-                      // 🔄 Volver al Login
+                      // 🔄 Back to Login
                       TextButton(
                       onPressed: () => Navigator.pop(context),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color.fromARGB(255, 16, 134, 55), // Cambia el color del texto aquí
+                      foregroundColor: const Color.fromARGB(255, 16, 134, 55), // Change text color here
                       ),
                       child: Text(
-                        "¿Ya tienes una cuenta? Inicia sesión",
-                        style: TextStyle(fontSize: 16, fontFamily: 'Parkinsans'), // Ajuste opcional de tamaño de fuente
+                      "Already have an account? Sign in",
+                      style: TextStyle(fontSize: 16, fontFamily: 'Parkinsans'), // Optional font size adjustment
                       ),
                       ),
                 ],
