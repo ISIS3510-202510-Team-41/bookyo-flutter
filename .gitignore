@@ -40,7 +40,13 @@ Desktop.ini
 *.key
 *.jks
 credentials.json
+lib/amplify_outputs.json
 
 # Archivos de logs y caché
 *.log
 *.lock
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugins.cmake
+linux/flutter/generated_plugin_registrant.h
+macos/Flutter/GeneratedPluginRegistrant.swift
