@@ -42,12 +42,12 @@ class _HomeViewState extends State<HomeView> {
       ),
       body: IndexedStack(
         index: _selectedIndex,
-        children: const [
-          HomeScreen(),
-          SearchScreen(),
-          PublishScreen(),
-          NotificationsScreen(),
-          ProfileScreen(),
+        children: [
+          HomeScreen(onTabSelected: _onItemTapped), // 🔥 Pasa la función aquí
+          const SearchScreen(),
+          const PublishScreen(),
+          const NotificationsScreen(),
+          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: Column(
@@ -79,11 +79,48 @@ class _HomeViewState extends State<HomeView> {
 }
 
 // Pantallas de cada pestaña
+//class HomeScreen extends StatelessWidget {
+  //const HomeScreen({Key? key}) : super(key: key);
+  //@override
+  //Widget build(BuildContext context) {
+    //return Center(child: Text('Home Screennn'));
+  //}
+//}
+
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final Function(int) onTabSelected; // Recibe la función para cambiar de pestaña
+
+  const HomeScreen({Key? key, required this.onTabSelected}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Home Screen'));
+    return Scaffold(
+      body: SingleChildScrollView( // 🔥 Permite desplazamiento
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 10), // 🔥 Espaciado arriba
+              OptionCard(
+                title: "Browse Books",
+                onTap: () {
+                  onTabSelected(1);// Puedes agregar la navegación a BrowseScreen aquí
+                },
+              ),
+              const SizedBox(height: 20),
+              OptionCard(
+                title: "Publish Book",
+                onTap: () {
+                  onTabSelected(2); // 🔥 Cambia a la pestaña de Publish
+                },
+              ),
+              const SizedBox(height: 50), // 🔥 Espaciado abajo
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -116,5 +153,46 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(child: Text('Profile Screen'));
+  }
+}
+
+
+// Widget Reutilizable para las Opciones
+class OptionCard extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+
+  const OptionCard({Key? key, required this.title, required this.onTap})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 1,
+        child: Column(
+          children: [
+            Container(
+              height: 150,
+              width: double.infinity,
+              color: Colors.grey[300], // Espacio para la imagen
+              child: const Icon(Icons.image, size: 80, color: Colors.black26),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(title),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
   }
 }
