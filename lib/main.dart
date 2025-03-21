@@ -27,13 +27,13 @@ Future<void> configureAmplify() async {
       await Amplify.addPlugin(AmplifyAuthCognito());
 
       // 3. Agregar plugin de API (GraphQL / REST), con modelProvider para las clases generadas
-      print("🔌 Agregando plugin de API...");
-      final apiPlugin = AmplifyAPI(
-        options: APIPluginOptions(
-          modelProvider: ModelProvider.instance,
-        ),
-      );
-      await Amplify.addPlugin(apiPlugin);
+      // print("🔌 Agregando plugin de API...");
+      // final apiPlugin = AmplifyAPI(
+      //   options: APIPluginOptions(
+      //     modelProvider: ModelProvider.instance,
+      //   ),
+      // );
+      // await Amplify.addPlugin(apiPlugin);
 
       // 4. Configurar Amplify con el JSON
       print("⚙️ Configurando Amplify...");
