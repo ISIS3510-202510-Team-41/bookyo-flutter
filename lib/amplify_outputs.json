@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-1_wffDDtgnq",
+    "user_pool_id": "us-east-1_BvcTG1Ryq",
     "aws_region": "us-east-1",
-    "user_pool_client_id": "4ggvf3gem3st21ojvg1ui9qie1",
-    "identity_pool_id": "us-east-1:ee25d12c-f036-4024-a3ba-3d94f56289ba",
+    "user_pool_client_id": "38g15gfqhb5bs7b69tquq7341e",
+    "identity_pool_id": "us-east-1:a82a69e7-efd3-4c4e-a58c-b89a96a8f66e",
     "mfa_methods": [],
     "standard_required_attributes": [
       "email"
@@ -26,9 +26,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://3edptxhd2zdanh3ja7aparqrqe.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://ovf4o3b46rerjgo6mklshgo4ze.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-vnuvr7ljp5aetojkvq7tacuwve",
+    "api_key": "da2-t7wtgekp3bd7nej6co2boi4l2a",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
       "API_KEY",
@@ -1006,22 +1006,6 @@
                 "targetNames": []
               }
             },
-            "notifications": {
-              "name": "notifications",
-              "isArray": true,
-              "type": {
-                "model": "Notifications"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userId"
-                ]
-              }
-            },
             "cart": {
               "name": "cart",
               "isArray": false,
@@ -1219,107 +1203,6 @@
                       "create",
                       "update",
                       "delete"
-                    ],
-                    "identityClaim": "cognito:username"
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "Notifications": {
-          "name": "Notifications",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userId": {
-              "name": "userId",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "user": {
-              "name": "user",
-              "isArray": false,
-              "type": {
-                "model": "User"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userId"
-                ]
-              }
-            },
-            "message": {
-              "name": "message",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "read": {
-              "name": "read",
-              "isArray": false,
-              "type": "Boolean",
-              "isRequired": true,
-              "attributes": []
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            }
-          },
-          "syncable": true,
-          "pluralName": "Notifications",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "key",
-              "properties": {
-                "fields": [
-                  "id"
-                ]
-              }
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "operations": [
-                      "update"
                     ],
                     "identityClaim": "cognito:username"
                   }
@@ -1701,6 +1584,106 @@
             "sortKeyFieldNames": []
           }
         },
+        "Notification": {
+          "name": "Notification",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "recipient": {
+              "name": "recipient",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "read": {
+              "name": "read",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "type": {
+              "name": "type",
+              "isArray": false,
+              "type": {
+                "enum": "NotificationType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Notifications",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "id"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read",
+                      "delete"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
         "Cart": {
           "name": "Cart",
           "fields": {
@@ -1831,6 +1814,14 @@
             "sold"
           ]
         },
+        "NotificationType": {
+          "name": "NotificationType",
+          "values": [
+            "NEW_BOOK",
+            "BOOK_SOLD",
+            "SYSTEM_NOTIFICATION"
+          ]
+        },
         "CartState": {
           "name": "CartState",
           "values": [
@@ -1843,10 +1834,31 @@
       "nonModels": {}
     }
   },
+  "storage": {
+    "aws_region": "us-east-1",
+    "bucket_name": "amplify-d1bhfdceav4rcm-ma-bookyostoragebucket3695f-yaoeyajhwpv5",
+    "buckets": [
+      {
+        "name": "bookyo-storage",
+        "bucket_name": "amplify-d1bhfdceav4rcm-ma-bookyostoragebucket3695f-yaoeyajhwpv5",
+        "aws_region": "us-east-1",
+        "paths": {
+          "images/*": {
+            "authenticated": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          }
+        }
+      }
+    ]
+  },
   "version": "1.3",
   "analytics": {
     "amazon_pinpoint": {
-      "app_id": "8b20cfffa17e42bfbbfa4a09d9be3425",
+      "app_id": "335ed22842414c5497028f874f240741",
       "aws_region": "us-east-1"
     }
   },
@@ -1860,5 +1872,9 @@
       },
       "default": "bookyo-map"
     }
+  },
+  "custom": {
+    "topicArn": "arn:aws:sns:us-east-1:536697236697:amplify-d1bhfdceav4rcm-main-branch-c6fa53ae44-CustomNotificationsB4470742-1HYJF92G6HXTG-CustomNotificationsNotificationTopicAA1447DB-lr0FCwGB3l8h",
+    "topicName": "amplify-d1bhfdceav4rcm-main-branch-c6fa53ae44-CustomNotificationsB4470742-1HYJF92G6HXTG-CustomNotificationsNotificationTopicAA1447DB-lr0FCwGB3l8h"
   }
 }
