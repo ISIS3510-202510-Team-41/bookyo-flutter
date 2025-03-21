@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'user_profile_view.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+
 
 class HomeView extends StatefulWidget {
   @override
@@ -88,34 +90,42 @@ class _HomeViewState extends State<HomeView> {
 //}
 
 class HomeScreen extends StatelessWidget {
-  final Function(int) onTabSelected; // Recibe la función para cambiar de pestaña
+  final Function(int) onTabSelected;
 
   const HomeScreen({Key? key, required this.onTabSelected}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, String>> books = [
+      {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"},
+      {"title": "1984", "author": "George Orwell"},
+      {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
+    ];
+
     return Scaffold(
-      body: SingleChildScrollView( // 🔥 Permite desplazamiento
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 10), // 🔥 Espaciado arriba
+              const SizedBox(height: 10),
+
+              // 📚 Browse Books con el carrusel
               OptionCard(
                 title: "Browse Books",
-                onTap: () {
-                  onTabSelected(1);// Puedes agregar la navegación a BrowseScreen aquí
-                },
+                onTap: () => onTabSelected(1),
+                imageContent: BookCarousel(books: books), // 🔥 Pasamos el carrusel
               ),
+
               const SizedBox(height: 20),
+
+              // 📚 Publish Book con la imagen estática
               OptionCard(
                 title: "Publish Book",
-                onTap: () {
-                  onTabSelected(2); // 🔥 Cambia a la pestaña de Publish
-                },
+                onTap: () => onTabSelected(2),
               ),
-              const SizedBox(height: 50), // 🔥 Espaciado abajo
+
+              const SizedBox(height: 50),
             ],
           ),
         ),
@@ -123,6 +133,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
 
 class SearchScreen extends StatelessWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -161,8 +172,9 @@ class ProfileScreen extends StatelessWidget {
 class OptionCard extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
+  final Widget? imageContent; // 🔥 Ahora permite un widget como contenido superior
 
-  const OptionCard({Key? key, required this.title, required this.onTap})
+  const OptionCard({Key? key, required this.title, required this.onTap, this.imageContent})
       : super(key: key);
 
   @override
@@ -177,8 +189,9 @@ class OptionCard extends StatelessWidget {
             Container(
               height: 150,
               width: double.infinity,
-              color: Colors.grey[300], // Espacio para la imagen
-              child: const Icon(Icons.image, size: 80, color: Colors.black26),
+              color: Colors.grey[300],
+              child: imageContent ?? // 🔥 Usa el widget si se proporciona, sino usa la imagen
+                  const Icon(Icons.image, size: 80, color: Colors.black26),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
@@ -193,6 +206,50 @@ class OptionCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// 📚 Carrusel de Libros
+class BookCarousel extends StatelessWidget {
+  final List<Map<String, String>> books;
+
+  const BookCarousel({Key? key, required this.books}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return CarouselSlider(
+      options: CarouselOptions(
+        height: 100,
+        autoPlay: true,
+        enlargeCenterPage: true,
+      ),
+      items: books.map((book) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 5.0),
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  book["title"]!,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  book["author"]!,
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
