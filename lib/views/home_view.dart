@@ -143,11 +143,98 @@ class SearchScreen extends StatelessWidget {
   }
 }
 
-class PublishScreen extends StatelessWidget {
+class PublishScreen extends StatefulWidget {
   const PublishScreen({Key? key}) : super(key: key);
+
+  @override
+  _PublishScreenState createState() => _PublishScreenState();
+}
+
+class _PublishScreenState extends State<PublishScreen> {
+  final TextEditingController _isbnController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _authorController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Publish Screen'));
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Publish"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              // Acción del carrito
+            },
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Imagen Placeholder
+            Container(
+              height: 150,
+              width: double.infinity,
+              color: Colors.grey[300],
+              child: const Icon(Icons.image, size: 80, color: Colors.black26),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () {
+                // Función para subir imágenes
+              },
+              child: const Text("Upload your images"),
+            ),
+            const SizedBox(height: 20),
+
+            // Campos de texto
+            TextField(
+              controller: _isbnController,
+              decoration: const InputDecoration(
+                labelText: "ISBN",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: "Title",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _authorController,
+              decoration: const InputDecoration(
+                labelText: "Author",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Botón Publicar
+            ElevatedButton(
+              onPressed: () {
+                // Función para publicar el libro
+                print("ISBN: ${_isbnController.text}");
+                print("Title: ${_titleController.text}");
+                print("Author: ${_authorController.text}");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+              ),
+              child: const Text("Publish"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
