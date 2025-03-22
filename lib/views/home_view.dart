@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'user_profile_view.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
+List<Map<String, String>> publishedBooks = [];
+
 
 class HomeView extends StatefulWidget {
   @override
@@ -96,11 +98,13 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> books = [
-      {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"},
-      {"title": "1984", "author": "George Orwell"},
-      {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
-    ];
+    final List<Map<String, String>> books = publishedBooks.isNotEmpty
+    ? publishedBooks
+    : [
+        {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"},
+        {"title": "1984", "author": "George Orwell"},
+        {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
+      ];
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -211,11 +215,32 @@ class _PublishScreenState extends State<PublishScreen> {
             // Botón Publicar
             ElevatedButton(
               onPressed: () {
-                // Función para publicar el libro
-                print("ISBN: ${_isbnController.text}");
-                print("Title: ${_titleController.text}");
-                print("Author: ${_authorController.text}");
-              },
+                final isbn = _isbnController.text;
+                final title = _titleController.text;
+                final author = _authorController.text;
+
+                if (isbn.isEmpty || title.isEmpty || author.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Por favor completa todos los campos')),
+                    );
+                    return;
+                }
+                
+                publishedBooks.add({
+                  "isbn": isbn,
+                  "title": title,
+                  "author": author,
+                  });
+
+                  _isbnController.clear();
+                  _titleController.clear();
+                  _authorController.clear();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Libro publicado con éxito')),
+                    );
+                  },
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
