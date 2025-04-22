@@ -1,3 +1,5 @@
+import 'package:amplify_datastore/amplify_datastore.dart';
+import 'package:bookyo_flutter/viewmodels/books_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
@@ -8,8 +10,8 @@ import 'dart:convert';
 
 import 'models/ModelProvider.dart'; // Modelos generados automáticamente
 import 'viewmodels/auth_vm.dart';
-import 'viewmodels/user_vm.dart'; // 🚀 Importamos UserViewModel
-import 'views/splash_view.dart';  // 🚀 Pantalla que decide entre Login y Home
+import 'viewmodels/user_vm.dart'; 
+import 'views/splash_view.dart';  
 
 Future<void> configureAmplify() async {
   try {
@@ -19,6 +21,9 @@ Future<void> configureAmplify() async {
       print("🛠️ Cargando configuración desde amplify_outputs.json...");
       final String configString = await rootBundle.loadString('lib/amplify_outputs.json');
       final Map<String, dynamic> config = json.decode(configString);
+
+      print("🔌 Agregando plugin de DataStore...");
+      await Amplify.addPlugin(AmplifyDataStore(modelProvider: ModelProvider.instance)); // 👈 NUEVO
 
       print("🔌 Agregando plugin de autenticación...");
       await Amplify.addPlugin(AmplifyAuthCognito());
@@ -51,7 +56,8 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthViewModel()), // 🔥 Login y registro
-        ChangeNotifierProvider(create: (_) => UserViewModel()), // 🔥 Información del usuario logueado
+        ChangeNotifierProvider(create: (_) => UserViewModel()), // 🔥 Info del usuario logueado
+        ChangeNotifierProvider(create: (_) => BooksViewModel()),       // 🔥 Libros publicados (nuevo)
       ],
       child: const MyApp(),
     ),

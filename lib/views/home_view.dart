@@ -1,8 +1,12 @@
+import 'package:bookyo_flutter/viewmodels/books_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:provider/provider.dart';
 import 'publish_screen.dart';
 import 'notifications_screen.dart';
 import 'user_profile_view.dart'; // 👈 Importación correcta
+import 'search_view.dart'; // 🔁 Asegúrate de que la ruta es correcta
+
 
 List<Map<String, String>> publishedBooks = [];
 
@@ -15,10 +19,16 @@ class _HomeViewState extends State<HomeView> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  if (index == 1) {
+    // 🔥 Si toca el ícono de búsqueda, hacer fetch de libros
+    final booksVM = Provider.of<BooksViewModel>(context, listen: false);
+    booksVM.fetchBooks();
   }
+  
+  setState(() {
+    _selectedIndex = index;
+  });
+}
 
   void _goToProfile() {
     Navigator.push(
@@ -31,6 +41,7 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.person), // 🔥 Cambio: ícono de persona
           onPressed: _goToProfile, // 🔥 Cambio: abre perfil
@@ -49,10 +60,10 @@ class _HomeViewState extends State<HomeView> {
         index: _selectedIndex,
         children: [
           HomeScreen(onTabSelected: _onItemTapped),
-          const SearchScreen(),
+          const SearchView(), // 🔁 Reemplazamos SearchScreen por SearchView con VM real
           const PublishScreen(),
           const NotificationsScreen(),
-          Container(), // 👈 Espacio vacío para el tab de menú
+          Container(), // menú
         ],
       ),
       bottomNavigationBar: Column(
