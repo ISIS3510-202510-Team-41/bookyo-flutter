@@ -3,56 +3,120 @@ import 'package:provider/provider.dart';
 import '../viewmodels/auth_vm.dart';
 import 'login_view.dart';
 
-class UserProfileView extends StatelessWidget {
+class UserProfileView extends StatefulWidget {
+  @override
+  _UserProfileViewState createState() => _UserProfileViewState();
+}
+
+class _UserProfileViewState extends State<UserProfileView> {
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    await authViewModel.fetchUserProfile();
+    setState(() => isLoading = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final authViewModel = Provider.of<AuthViewModel>(context);
+    final userProfile = authViewModel.user;
 
     return Scaffold(
-      appBar: AppBar(title: Text("User Profile")),
-      body: Center(
+      appBar: AppBar(
+        title: const Text("My Profile"),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: authViewModel.user?.photoUrl != null
-                ? NetworkImage(authViewModel.user!.photoUrl!)
-                : null,
-              backgroundColor: Colors.grey[300],
-              child: authViewModel.user?.photoUrl == null
-                ? Icon(Icons.person, size: 50, color: Colors.white)
-                : null,
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Nombre: ${authViewModel.user?.displayName ?? 'No disponible'}",
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 10),
-            Text(
-              "Email: ${authViewModel.user?.email ?? 'No disponible'}",
-              style: TextStyle(fontSize: 18),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 20),
+            if (isLoading)
+              const CircularProgressIndicator()
+            else if (userProfile == null)
+              const Text(
+                "No user information available.",
+                style: TextStyle(fontSize: 18),
+              )
+            else
+              Column(
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey[300],
+                    child: const Icon(Icons.person, size: 60, color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "${userProfile.firstName ?? ''} ${userProfile.lastName ?? ''}",
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    userProfile.email,
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 30),
+                  _buildInfoTile(Icons.phone, "Phone", userProfile.phone ?? "No phone registered"),
+                  const SizedBox(height: 10),
+                  _buildInfoTile(Icons.home, "Address", userProfile.address ?? "No address registered"),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            // 🔥 Logout button SIEMPRE disponible
+            ElevatedButton.icon(
               onPressed: () async {
-              await authViewModel.logout();
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginView()));
+                await authViewModel.logout();
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginView()));
               },
-              style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              backgroundColor: Color(0xFFB6EB7A),
-              fixedSize: Size(MediaQuery.of(context).size.width / 2, 50),
+              icon: const Icon(Icons.logout, color: Colors.black),
+              label: const Text(
+                "Logout",
+                style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans'),
               ),
-              child: Text(
-              "Logout",
-              style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFB6EB7A),
+                fixedSize: Size(MediaQuery.of(context).size.width / 2, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
-            SizedBox(height: 20),
-            ],
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String title, String value) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blue),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                const SizedBox(height: 4),
+                Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

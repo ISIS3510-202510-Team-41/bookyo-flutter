@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'user_profile_view.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'publish_screen.dart';
 import 'notifications_screen.dart';
+import 'user_profile_view.dart'; // 👈 Importación correcta
 
 List<Map<String, String>> publishedBooks = [];
 
@@ -15,9 +15,17 @@ class _HomeViewState extends State<HomeView> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 4) {
+      // 👉 Si tocan la personita abajo, abrimos perfil
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => UserProfileView()),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -25,22 +33,17 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.person),
+          icon: Icon(Icons.menu),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => UserProfileView()),
-            );
+            // 🔹 Aquí luego podemos agregar un Drawer o algo especial
           },
         ),
-        title: Text("Bookyo"),
+        title: const Text("Bookyo"),
         actions: [
           IconButton(
-            icon: Icon(Icons.shopping_cart),
+            icon: const Icon(Icons.shopping_cart),
             onPressed: () {
-              setState(() {
-                _selectedIndex = 1;
-              });
+              _onItemTapped(1); // Ir a la pestaña de búsqueda/carrito
             },
           ),
         ],
@@ -52,7 +55,7 @@ class _HomeViewState extends State<HomeView> {
           const SearchScreen(),
           const PublishScreen(),
           const NotificationsScreen(),
-          const ProfileScreen(),
+          Container(), // 👈 Espacio vacío para el tab de perfil (porque se abre aparte)
         ],
       ),
       bottomNavigationBar: Column(
@@ -60,7 +63,7 @@ class _HomeViewState extends State<HomeView> {
         children: [
           Divider(color: Colors.grey),
           BottomNavigationBar(
-            items: const <BottomNavigationBarItem>[
+            items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.add_box), label: ''),
@@ -68,14 +71,12 @@ class _HomeViewState extends State<HomeView> {
               BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
             ],
             currentIndex: _selectedIndex,
-            selectedItemColor: const Color(0xFFDB995A),
+            selectedItemColor: Color(0xFFDB995A),
             unselectedItemColor: Colors.grey,
             onTap: _onItemTapped,
             type: BottomNavigationBarType.fixed,
             showSelectedLabels: false,
             showUnselectedLabels: false,
-            selectedFontSize: 0,
-            unselectedFontSize: 0,
           ),
         ],
       ),
@@ -83,6 +84,8 @@ class _HomeViewState extends State<HomeView> {
   }
 }
 
+// ----------------------------------------------
+// 🔹 HomeScreen principal (explorar libros / publicar)
 class HomeScreen extends StatelessWidget {
   final Function(int) onTabSelected;
 
@@ -98,47 +101,52 @@ class HomeScreen extends StatelessWidget {
             {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
           ];
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            OptionCard(
-              title: "Browse Books",
-              onTap: () => onTabSelected(1),
-              imageContent: BookCarousel(books: books),
-            ),
-            const SizedBox(height: 20),
-            OptionCard(
-              title: "Publish Book",
-              onTap: () => onTabSelected(2),
-            ),
-            const SizedBox(height: 50),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          OptionCard(
+            title: "Browse Books",
+            onTap: () => onTabSelected(1),
+            imageContent: BookCarousel(books: books),
+          ),
+          const SizedBox(height: 20),
+          OptionCard(
+            title: "Publish Book",
+            onTap: () => onTabSelected(2),
+          ),
+          const SizedBox(height: 50),
+        ],
       ),
     );
   }
 }
 
+// ----------------------------------------------
+// 🔹 Pantalla de búsqueda (placeholder)
 class SearchScreen extends StatelessWidget {
   const SearchScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Center(child: Text('Search Screen'));
   }
 }
 
+// ----------------------------------------------
+// 🔹 Pantalla vacía de Perfil (ya no se usa aquí directamente)
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Center(child: Text('Profile Screen'));
   }
 }
 
-// Reutilizable
+// ----------------------------------------------
+// 🔹 Tarjeta de opciones
 class OptionCard extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
@@ -175,6 +183,8 @@ class OptionCard extends StatelessWidget {
   }
 }
 
+// ----------------------------------------------
+// 🔹 Carrusel de libros
 class BookCarousel extends StatelessWidget {
   final List<Map<String, String>> books;
 
@@ -199,9 +209,16 @@ class BookCarousel extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(book["title"]!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                Text(
+                  book["title"]!,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 5),
-                Text(book["author"]!, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                Text(
+                  book["author"]!,
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
               ],
             ),
           ),
