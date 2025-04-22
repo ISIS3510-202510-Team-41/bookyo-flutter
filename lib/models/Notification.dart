@@ -229,6 +229,7 @@ class Notification extends amplify_core.Model {
         authStrategy: amplify_core.AuthStrategy.PRIVATE,
         operations: const [
           amplify_core.ModelOperation.READ,
+          amplify_core.ModelOperation.CREATE,
           amplify_core.ModelOperation.DELETE
         ])
     ];
