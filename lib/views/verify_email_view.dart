@@ -2,11 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/auth_vm.dart';
 import 'login_view.dart';
+import 'home_view.dart'; // ✅ Importa tu HomeView para navegar luego
 
 class VerifyEmailView extends StatefulWidget {
-  final String email; // ✅ User's registered email
+  final String email;
+  final String password;
+  final String firstName;
+  final String lastName;
+  final String phone;
+  final String address;
 
-  VerifyEmailView({required this.email});
+  VerifyEmailView({
+    required this.email,
+    required this.password,
+    required this.firstName,
+    required this.lastName,
+    required this.phone,
+    required this.address,
+  });
 
   @override
   _VerifyEmailViewState createState() => _VerifyEmailViewState();
@@ -27,9 +40,9 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   void _showToast(BuildContext context, String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: TextStyle(color: Colors.white)),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
         backgroundColor: isError ? Colors.red : Colors.green,
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -42,7 +55,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       backgroundColor: Colors.white,
       body: Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: SingleChildScrollView(
             child: Form(
               key: _formKey,
@@ -52,22 +65,22 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // 📝 Title
-                  Text(
+                  const Text(
                     "Verify Email",
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 10),
-                  Text(
+                  const SizedBox(height: 10),
+                  const Text(
                     "Enter the verification code sent to:",
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
                   Text(
-                    widget.email, // ✅ Display registered email
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                    widget.email,
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
                   // 🔢 Verification Code Field
                   TextFormField(
@@ -75,7 +88,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                     decoration: InputDecoration(
                       labelText: "Verification Code",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                      prefixIcon: Icon(Icons.verified),
+                      prefixIcon: const Icon(Icons.verified),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
@@ -84,39 +97,72 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
                   // 🟢 Verify Button
                   isLoading
-                      ? CircularProgressIndicator()
+                      ? const CircularProgressIndicator()
                       : ElevatedButton(
                           onPressed: () async {
                             if (_formKey.currentState!.validate()) {
                               setState(() => isLoading = true);
-                              bool success = await authViewModel.verifyEmail(widget.email, codeController.text);
-                              setState(() => isLoading = false);
 
-                              if (success) {
-                                _showToast(context, "Account successfully verified.");
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => LoginView()),
+                              final authVM = Provider.of<AuthViewModel>(context, listen: false);
+
+                              bool verified = await authVM.verifyEmail(widget.email, codeController.text);
+
+                              if (verified) {
+                                bool loggedIn = await authVM.login(widget.email, widget.password);
+
+                                if (loggedIn) {
+                                  // 🔥 Ahora CREAR el perfil completo
+                                  bool profileCreated = await authVM.createUserProfile(
+                                    firstName: widget.firstName,  // 🔥 Necesitamos pasar estos datos
+                                    lastName: widget.lastName,
+                                    phone: widget.phone,
+                                    address: widget.address,
                                   );
-                                });
+
+                                  setState(() => isLoading = false);
+
+                                  if (profileCreated) {
+                                    _showToast(context, "✅ Account verified and profile created successfully.");
+                                    Future.delayed(const Duration(seconds: 2), () {
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(builder: (_) => HomeView()),
+                                      );
+                                    });
+                                  } else {
+                                    _showToast(context, "⚠️ Account verified but failed to create profile.", isError: true);
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => HomeView()),
+                                    );
+                                  }
+                                } else {
+                                  setState(() => isLoading = false);
+                                  _showToast(context, "⚠️ Verification done but login failed.", isError: true);
+                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginView()));
+                                }
                               } else {
-                                _showToast(context, "Incorrect or expired code.", isError: true);
+                                setState(() => isLoading = false);
+                                _showToast(context, "❌ Incorrect or expired verification code.", isError: true);
                               }
                             }
-                          },
+                          }
+,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFFB6EB7A), // Added color
-                            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                            backgroundColor: const Color(0xFFB6EB7A),
+                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: Text("Verify", style: TextStyle(fontSize: 18, color: Colors.black)),
+                          child: const Text(
+                            "Verify",
+                            style: TextStyle(fontSize: 18, color: Colors.black),
+                          ),
                         ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
                   // 🔄 Resend Code
                   TextButton(
@@ -132,9 +178,9 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                       }
                     },
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.green[800], // Dark green color
+                      foregroundColor: Colors.green[800],
                     ),
-                    child: Text("Didn't receive the code? Resend"),
+                    child: const Text("Didn't receive the code? Resend"),
                   ),
                 ],
               ),
