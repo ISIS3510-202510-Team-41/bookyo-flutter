@@ -15,17 +15,16 @@ class _HomeViewState extends State<HomeView> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    if (index == 4) {
-      // 👉 Si tocan la personita abajo, abrimos perfil
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => UserProfileView()),
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _goToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => UserProfileView()),
+    );
   }
 
   @override
@@ -33,10 +32,8 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.menu),
-          onPressed: () {
-            // 🔹 Aquí luego podemos agregar un Drawer o algo especial
-          },
+          icon: const Icon(Icons.person), // 🔥 Cambio: ícono de persona
+          onPressed: _goToProfile, // 🔥 Cambio: abre perfil
         ),
         title: const Text("Bookyo"),
         actions: [
@@ -55,7 +52,7 @@ class _HomeViewState extends State<HomeView> {
           const SearchScreen(),
           const PublishScreen(),
           const NotificationsScreen(),
-          Container(), // 👈 Espacio vacío para el tab de perfil (porque se abre aparte)
+          Container(), // 👈 Espacio vacío para el tab de menú
         ],
       ),
       bottomNavigationBar: Column(
@@ -68,7 +65,7 @@ class _HomeViewState extends State<HomeView> {
               BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.add_box), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
+              BottomNavigationBarItem(icon: Icon(Icons.menu), label: ''), // 🔥 Cambio: menú
             ],
             currentIndex: _selectedIndex,
             selectedItemColor: Color(0xFFDB995A),
@@ -130,18 +127,18 @@ class SearchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Search Screen'));
+    return const Center(child: Text('Search Screen'));
   }
 }
 
 // ----------------------------------------------
-// 🔹 Pantalla vacía de Perfil (ya no se usa aquí directamente)
+// 🔹 Pantalla vacía de Perfil (no usada aquí directamente)
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Profile Screen'));
+    return const Center(child: Text('Profile Screen'));
   }
 }
 
@@ -172,7 +169,10 @@ class OptionCard extends StatelessWidget {
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: onTap,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
               child: Text(title),
             ),
             const SizedBox(height: 10),
