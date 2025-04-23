@@ -239,16 +239,24 @@ class AuthViewModel with ChangeNotifier {
 
       if (response.data != null) {
         print("✅ User profile fetched: ${response.data!.email}");
-        currentUser = response.data; // ✅ Guardar el perfil en memoria
+        currentUser = response.data;
         notifyListeners();
         return currentUser;
       } else {
-        print("⚠️ User profile not found");
-        return null;
+        // 👇 Si no existe, lo creamos con datos mínimos
+        print("⚠️ No existe perfil en base de datos, creando usuario básico...");
+
+        final user = User(email: userEmail!);
+        await Amplify.DataStore.save(user);
+
+        currentUser = user;
+        notifyListeners();
+        return currentUser;
       }
     } catch (e) {
-      print("❌ Error fetching user profile: $e");
+      print("❌ Error fetching or creating user profile: $e");
       return null;
     }
   }
+
 }

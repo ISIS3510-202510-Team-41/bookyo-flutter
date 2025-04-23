@@ -110,12 +110,30 @@ class PublishViewModel extends ChangeNotifier {
 
       // 5. Asociar el libro a la UserLibrary
       try {
-        final currentUser = await Amplify.Auth.getCurrentUser();
+        // 5.1 Obtener email real del usuario autenticado
+        final attributes = await Amplify.Auth.fetchUserAttributes();
+        final email = attributes.firstWhere((a) => a.userAttributeKey.key == 'email').value;
 
-        // Buscar UserLibrary por email
+        // 5.2 Buscar o crear User
+        final users = await Amplify.DataStore.query(
+          User.classType,
+          where: User.EMAIL.eq(email),
+        );
+
+        User user;
+        if (users.isEmpty) {
+          user = User(email: email);
+          await Amplify.DataStore.save(user);
+          debugPrint("👤 Usuario creado: ${user.email}");
+        } else {
+          user = users.first;
+          debugPrint("👤 Usuario encontrado: ${user.email}");
+        }
+
+        // 5.3 Buscar o crear UserLibrary
         final userLibraries = await Amplify.DataStore.query(
           UserLibrary.classType,
-          where: UserLibrary.USER.eq(currentUser.username),
+          where: UserLibrary.USER.eq(user),
         );
 
         UserLibrary userLibrary;
@@ -123,27 +141,22 @@ class PublishViewModel extends ChangeNotifier {
           userLibrary = userLibraries.first;
           debugPrint("📚 Biblioteca encontrada: ${userLibrary.id}");
         } else {
-          // Asegúrate de crear primero el usuario con su email (clave primaria)
-          final user = User(email: currentUser.username); // 👈 CAMBIO CRUCIAL
-          await Amplify.DataStore.save(user);
-
           userLibrary = UserLibrary(user: user);
           await Amplify.DataStore.save(userLibrary);
           debugPrint("📚 Biblioteca creada: ${userLibrary.id}");
         }
 
+        // 5.4 Asociar el libro a la biblioteca del usuario
         final bookLibrary = BookLibrary(
           book: book,
           userLibraryRef: userLibrary,
         );
-
-        
         await Amplify.DataStore.save(bookLibrary);
         debugPrint("📎 Libro asociado a la biblioteca del usuario");
 
+        // Debug opcional
         final allBookLibraries = await Amplify.DataStore.query(BookLibrary.classType);
         debugPrint("📦 Total BookLibraries en DataStore: ${allBookLibraries.length}");
-
       } catch (e) {
         debugPrint("⚠️ No se pudo asociar el libro a la biblioteca del usuario: $e");
       }
