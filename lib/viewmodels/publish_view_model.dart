@@ -51,7 +51,22 @@ class PublishViewModel extends ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
-      // 1. Subir imagen a S3
+      // Obtener el usuario autenticado
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      final email = attributes.firstWhere((a) => a.userAttributeKey.key == 'email').value;
+      final users = await Amplify.DataStore.query(User.classType, where: User.EMAIL.eq(email));
+      late final User user;
+
+      if (users.isNotEmpty) {
+        user = users.first;
+        debugPrint("👤 Usuario encontrado: ${user.email}");
+      } else {
+        user = User(email: email);
+        await Amplify.DataStore.save(user);
+        debugPrint("✅ Usuario creado: ${user.email}");
+      }
+
+      // Subir imagen a S3
       final imageKey = "images/${const Uuid().v4()}.jpg";
       final imageFile = File(selectedImage!.path);
       debugPrint("☁️ Subiendo imagen con key: $imageKey");
@@ -62,7 +77,7 @@ class PublishViewModel extends ChangeNotifier {
       );
       debugPrint("✅ Imagen subida");
 
-      // 2. Buscar o crear autor
+      // Buscar o crear autor
       final existingAuthors = await Amplify.DataStore.query(
         Author.classType,
         where: Author.NAME.eq(authorName),
@@ -78,7 +93,7 @@ class PublishViewModel extends ChangeNotifier {
         debugPrint("✅ Autor creado: ${author.id}");
       }
 
-      // 3. Buscar o crear libro por ISBN
+      // Buscar o crear libro por ISBN
       final existingBooks = await Amplify.DataStore.query(
         Book.classType,
         where: Book.ISBN.eq(isbn),
@@ -99,73 +114,15 @@ class PublishViewModel extends ChangeNotifier {
         debugPrint("✅ Libro creado: ${book.id}");
       }
 
-      // 4. Crear Listing
+      // Crear Listing con el usuario asociado
       final listing = Listing(
         book: book,
         price: price,
         photos: [imageKey],
+        user: user,
       );
       await Amplify.DataStore.save(listing);
-      debugPrint("✅ Listing creado");
-
-      // 5. Asociar el libro a la UserLibrary
-      try {
-        final attributes = await Amplify.Auth.fetchUserAttributes();
-        final emailAttr = attributes.firstWhere((a) => a.userAttributeKey.key == 'email');
-        final email = emailAttr.value;
-        debugPrint("📧 Email obtenido para asociación de UserLibrary: $email");
-
-        final users = await Amplify.DataStore.query(
-          User.classType,
-          where: User.EMAIL.eq(email),
-        );
-
-        late final User user;
-
-        if (users.isNotEmpty) {
-          user = users.first;
-          debugPrint("👤 Usuario encontrado: ${user.email}");
-        } else {
-          user = User(email: email);
-          await Amplify.DataStore.save(user);
-          debugPrint("✅ Usuario creado: ${user.email}");
-        }
-
-        final userLibraries = await Amplify.DataStore.query(
-          UserLibrary.classType,
-          where: UserLibrary.USER.eq(user),
-        );
-
-        late final UserLibrary userLibrary;
-
-        if (userLibraries.isNotEmpty) {
-          userLibrary = userLibraries.first;
-          debugPrint("📚 Biblioteca encontrada: ${userLibrary.id}");
-        } else {
-          userLibrary = UserLibrary(user: user);
-          await Amplify.DataStore.save(userLibrary);
-          debugPrint("📚 Biblioteca creada: ${userLibrary.id}");
-        }
-
-        final existingLinks = await Amplify.DataStore.query(
-          BookLibrary.classType,
-          where: BookLibrary.USERLIBRARYREF.eq(userLibrary).and(BookLibrary.BOOK.eq(book)),
-        );
-
-        if (existingLinks.isEmpty) {
-          final bookLibrary = BookLibrary(
-            book: book,
-            userLibraryRef: userLibrary,
-          );
-          await Amplify.DataStore.save(bookLibrary);
-          debugPrint("✅ Libro agregado a la biblioteca del usuario");
-        } else {
-          debugPrint("⚠️ El libro ya estaba en la biblioteca del usuario");
-        }
-      } catch (e, st) {
-        debugPrint("❌ Error al asociar libro con UserLibrary: $e");
-        debugPrint("📄 Stacktrace: $st");
-      }
+      debugPrint("✅ Listing creado con usuario");
 
       _reset();
       ScaffoldMessenger.of(context).showSnackBar(

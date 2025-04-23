@@ -30,14 +30,14 @@ class _UserLibraryViewState extends State<UserLibraryView> {
               ? Center(
                   child: Text(booksVM.errorMessage!,
                       style: const TextStyle(color: Colors.red)))
-              : booksVM.publishedListings.isEmpty
+              : booksVM.userListings.isEmpty
                   ? const Center(child: Text('You have not listed any books yet.'))
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
-                      itemCount: booksVM.publishedListings.length,
+                      itemCount: booksVM.userListings.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final listing = booksVM.publishedListings[index];
+                        final listing = booksVM.userListings[index];
                         final book = listing.book;
                         if (book == null) return const SizedBox.shrink();
                         return _BookListingCard(
