@@ -1,5 +1,6 @@
 import 'package:amplify_datastore/amplify_datastore.dart';
 import 'package:bookyo_flutter/viewmodels/books_vm.dart';
+import 'package:bookyo_flutter/viewmodels/user_library_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
@@ -59,9 +60,11 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel()), // 🔥 Login y registro
-        ChangeNotifierProvider(create: (_) => UserViewModel()), // 🔥 Info del usuario logueado
-        ChangeNotifierProvider(create: (_) => BooksViewModel()),       // 🔥 Libros publicados (nuevo)
+        ChangeNotifierProvider(create: (_) => AuthViewModel()), // Login y registro
+        ChangeNotifierProvider(create: (_) => UserViewModel()), // Info del usuario logueado
+        ChangeNotifierProvider(create: (_) => BooksViewModel()),       // Libros publicados 
+        ChangeNotifierProvider(create: (_) => UserLibraryViewModel()), // User Library
+
       ],
       child: const MyApp(),
     ),

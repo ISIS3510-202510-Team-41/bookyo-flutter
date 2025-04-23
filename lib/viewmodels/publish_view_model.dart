@@ -51,7 +51,7 @@ class PublishViewModel extends ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
-      // 1. Subir imagen
+      // 1. Subir imagen a S3
       final imageKey = "images/${const Uuid().v4()}.jpg";
       final imageFile = File(selectedImage!.path);
       debugPrint("☁️ Subiendo imagen con key: $imageKey");
@@ -108,7 +108,47 @@ class PublishViewModel extends ChangeNotifier {
       await Amplify.DataStore.save(listing);
       debugPrint("✅ Listing creado");
 
-      // 5. Reset + Feedback
+      // 5. Asociar el libro a la UserLibrary
+      try {
+        final currentUser = await Amplify.Auth.getCurrentUser();
+
+        // Buscar UserLibrary por email
+        final userLibraries = await Amplify.DataStore.query(
+          UserLibrary.classType,
+          where: UserLibrary.USER.eq(currentUser.username),
+        );
+
+        UserLibrary userLibrary;
+        if (userLibraries.isNotEmpty) {
+          userLibrary = userLibraries.first;
+          debugPrint("📚 Biblioteca encontrada: ${userLibrary.id}");
+        } else {
+          // Asegúrate de crear primero el usuario con su email (clave primaria)
+          final user = User(email: currentUser.username); // 👈 CAMBIO CRUCIAL
+          await Amplify.DataStore.save(user);
+
+          userLibrary = UserLibrary(user: user);
+          await Amplify.DataStore.save(userLibrary);
+          debugPrint("📚 Biblioteca creada: ${userLibrary.id}");
+        }
+
+        final bookLibrary = BookLibrary(
+          book: book,
+          userLibraryRef: userLibrary,
+        );
+
+        
+        await Amplify.DataStore.save(bookLibrary);
+        debugPrint("📎 Libro asociado a la biblioteca del usuario");
+
+        final allBookLibraries = await Amplify.DataStore.query(BookLibrary.classType);
+        debugPrint("📦 Total BookLibraries en DataStore: ${allBookLibraries.length}");
+
+      } catch (e) {
+        debugPrint("⚠️ No se pudo asociar el libro a la biblioteca del usuario: $e");
+      }
+
+      // 6. Reset + Feedback
       _reset();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("📚 Libro publicado con éxito")),
@@ -122,6 +162,7 @@ class PublishViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
 
   void _reset() {
     isbnController.clear();

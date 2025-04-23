@@ -2,11 +2,12 @@ import 'package:bookyo_flutter/viewmodels/books_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
+import '../viewmodels/user_library_vm.dart';
 import 'publish_screen.dart';
 import 'notifications_screen.dart';
-import 'user_profile_view.dart'; // 👈 Importación correcta
-import 'search/search_view.dart'; // 🔁 Asegúrate de que la ruta es correcta
-
+import 'user_profile_view.dart';
+import 'search/search_view.dart';
+import 'user_library/user_library_view.dart';
 
 List<Map<String, String>> publishedBooks = [];
 
@@ -19,16 +20,21 @@ class _HomeViewState extends State<HomeView> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-  if (index == 1) {
-    final booksVM = Provider.of<BooksViewModel>(context, listen: false);
-    booksVM.fetchBooks();
-    booksVM.fetchPublishedListings();
+    if (index == 1) {
+      final booksVM = Provider.of<BooksViewModel>(context, listen: false);
+      booksVM.fetchBooks();
+      booksVM.fetchPublishedListings();
+    }
+
+    if (index == 4) {
+      final userLibraryVM = Provider.of<UserLibraryViewModel>(context, listen: false);
+      userLibraryVM.loadUserLibrary();
+    }
+
+    setState(() {
+      _selectedIndex = index;
+    });
   }
-  
-  setState(() {
-    _selectedIndex = index;
-  });
-}
 
   void _goToProfile() {
     Navigator.push(
@@ -43,15 +49,15 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.person), // 🔥 Cambio: ícono de persona
-          onPressed: _goToProfile, // 🔥 Cambio: abre perfil
+          icon: const Icon(Icons.person),
+          onPressed: _goToProfile,
         ),
         title: const Text("Bookyo"),
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
             onPressed: () {
-              _onItemTapped(1); // Ir a la pestaña de búsqueda/carrito
+              _onItemTapped(1);
             },
           ),
         ],
@@ -59,24 +65,24 @@ class _HomeViewState extends State<HomeView> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          HomeScreen(onTabSelected: _onItemTapped),
-          const SearchView(), // 🔁 Reemplazamos SearchScreen por SearchView con VM real
-          const PublishScreen(),
-          const NotificationsScreen(),
-          Container(), // menú
+          HomeScreen(onTabSelected: _onItemTapped), // 0
+          const SearchView(),                       // 1
+          const PublishScreen(),                    // 2
+          const NotificationsScreen(),              // 3
+          const UserLibraryView(),                  // 4 👈 Biblioteca del usuario
         ],
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Divider(color: Colors.grey),
+          const Divider(color: Colors.grey),
           BottomNavigationBar(
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.add_box), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
-              BottomNavigationBarItem(icon: Icon(Icons.menu), label: ''), // 🔥 Cambio: menú
+              BottomNavigationBarItem(icon: Icon(Icons.menu), label: ''), // 👈 Menú
             ],
             currentIndex: _selectedIndex,
             selectedItemColor: Color(0xFFDB995A),
@@ -128,28 +134,6 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-// ----------------------------------------------
-// 🔹 Pantalla de búsqueda (placeholder)
-class SearchScreen extends StatelessWidget {
-  const SearchScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Search Screen'));
-  }
-}
-
-// ----------------------------------------------
-// 🔹 Pantalla vacía de Perfil (no usada aquí directamente)
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Profile Screen'));
   }
 }
 
