@@ -1,0 +1,142 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_api/amplify_api.dart';
+import 'package:uuid/uuid.dart';
+
+import '../models/ModelProvider.dart';
+
+class PublishViewModel extends ChangeNotifier {
+  final TextEditingController isbnController = TextEditingController();
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController authorController = TextEditingController();
+  final TextEditingController priceController = TextEditingController();
+
+  XFile? selectedImage;
+  bool isLoading = false;
+  String? errorMessage;
+
+  void selectImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      selectedImage = picked;
+      debugPrint("✅ Imagen seleccionada: ${picked.path}");
+      notifyListeners();
+    } else {
+      debugPrint("⚠️ Selección de imagen cancelada.");
+    }
+  }
+
+  Future<void> publishBook(BuildContext context, VoidCallback onSuccess) async {
+    final isbn = isbnController.text.trim();
+    final title = titleController.text.trim();
+    final authorName = authorController.text.trim();
+    final priceText = priceController.text.trim();
+
+    if (isbn.isEmpty || title.isEmpty || authorName.isEmpty || priceText.isEmpty || selectedImage == null) {
+      errorMessage = "Todos los campos son obligatorios.";
+      notifyListeners();
+      return;
+    }
+
+    final double? price = double.tryParse(priceText);
+    if (price == null || price <= 0) {
+      errorMessage = "Precio inválido";
+      notifyListeners();
+      return;
+    }
+
+    try {
+      isLoading = true;
+      notifyListeners();
+
+      final imageKey = "images/${const Uuid().v4()}.jpg";
+      final imageFile = File(selectedImage!.path);
+
+      debugPrint("☁️ Subiendo imagen con key: $imageKey");
+
+      await Amplify.Storage.uploadFile(
+        path: StoragePath.fromString(imageKey),
+        localFile: AWSFile.fromPath(imageFile.path), 
+      );
+
+      debugPrint("✅ Imagen subida");
+
+      // Buscar autor o crear uno nuevo
+      final authorListRequest = ModelQueries.list(
+        Author.classType,
+        where: Author.NAME.eq(authorName),
+      );
+      final authorResult = await Amplify.API.query(request: authorListRequest).response;
+
+      final items = authorResult.data?.items ?? [];
+      final List<Author> authors = items.whereType<Author>().toList();
+
+      Author author;
+      if (authors.isNotEmpty) {
+        author = authors.first;
+        debugPrint("✅ Autor encontrado: ${author.id}");
+      } else {
+        debugPrint("➕ Creando autor...");
+        final createAuthorResponse = await Amplify.API.mutate(
+          request: ModelMutations.create(Author(name: authorName)),
+        ).response;
+        author = createAuthorResponse.data!;
+        debugPrint("✅ Autor creado: ${author.id}");
+      }
+
+      // Crear libro
+      final book = Book(
+        title: title,
+        isbn: isbn,
+        thumbnail: imageKey,
+        author: author,
+      );
+
+      final createBook = await Amplify.API.mutate(
+        request: ModelMutations.create(book),
+      ).response;
+      final savedBook = createBook.data!;
+      debugPrint("✅ Libro creado: ${savedBook.id}");
+
+      // Crear listing
+      final listing = Listing(
+        book: savedBook,
+        price: price,
+        photos: [imageKey],
+      );
+
+      await Amplify.API.mutate(
+        request: ModelMutations.create(listing),
+      ).response;
+
+      debugPrint("✅ Listing creado correctamente");
+
+      _reset();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("📚 Libro publicado con éxito")),
+      );
+      onSuccess();
+    } catch (e, st) {
+      debugPrint("❌ Error al publicar: $e");
+      debugPrint("📄 Stacktrace:\n$st");
+      errorMessage = "Error al publicar el libro.";
+      notifyListeners();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void _reset() {
+    isbnController.clear();
+    titleController.clear();
+    authorController.clear();
+    priceController.clear();
+    selectedImage = null;
+    errorMessage = null;
+    notifyListeners();
+  }
+}
