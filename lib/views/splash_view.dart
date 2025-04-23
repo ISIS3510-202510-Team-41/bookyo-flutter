@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../viewmodels/auth_vm.dart';
 import '../viewmodels/user_vm.dart';
 import 'home_view.dart';
-import 'login_view.dart';
+import 'auth/login_view.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -20,7 +20,7 @@ class _SplashViewState extends State<SplashView> {
   }
 
   Future<void> _initialize() async {
-    await Future.delayed(const Duration(seconds: 2)); // ⏳ Mostrar splash al menos 2 segundos
+    await Future.delayed(const Duration(seconds: 1)); // ⏳ Mostrar splash al menos 2 segundos
 
     final authVM = Provider.of<AuthViewModel>(context, listen: false);
     final userVM = Provider.of<UserViewModel>(context, listen: false);

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../viewmodels/auth_vm.dart';
-import '../viewmodels/user_vm.dart'; // 🚨 Importa el UserViewModel
-import 'home_view.dart';
+import '../../viewmodels/auth_vm.dart';
+import '../../viewmodels/user_vm.dart'; // 🚨 Importa el UserViewModel
+import '../home_view.dart';
 import 'register_view.dart';
 
 class LoginView extends StatefulWidget {

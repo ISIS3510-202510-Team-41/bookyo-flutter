@@ -1,10 +1,12 @@
 import 'package:amplify_datastore/amplify_datastore.dart';
 import 'package:bookyo_flutter/viewmodels/books_vm.dart';
+import 'package:bookyo_flutter/viewmodels/user_library_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_api/amplify_api.dart'; // Para usar GraphQL y REST
+import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 
@@ -36,6 +38,9 @@ Future<void> configureAmplify() async {
       );
       await Amplify.addPlugin(apiPlugin);
 
+      print("🔌 Agregando plugin de Storage (S3)...");
+      await Amplify.addPlugin(AmplifyStorageS3());
+
       print("⚙️ Configurando Amplify...");
       await Amplify.configure(jsonEncode(config));
 
@@ -55,9 +60,11 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel()), // 🔥 Login y registro
-        ChangeNotifierProvider(create: (_) => UserViewModel()), // 🔥 Info del usuario logueado
-        ChangeNotifierProvider(create: (_) => BooksViewModel()),       // 🔥 Libros publicados (nuevo)
+        ChangeNotifierProvider(create: (_) => AuthViewModel()), // Login y registro
+        ChangeNotifierProvider(create: (_) => UserViewModel()), // Info del usuario logueado
+        ChangeNotifierProvider(create: (_) => BooksViewModel()),       // Libros publicados 
+        ChangeNotifierProvider(create: (_) => UserLibraryViewModel()), // User Library
+
       ],
       child: const MyApp(),
     ),

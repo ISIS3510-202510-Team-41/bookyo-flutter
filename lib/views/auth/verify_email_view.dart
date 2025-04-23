@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../viewmodels/auth_vm.dart';
+import '../../viewmodels/auth_vm.dart';
 import 'login_view.dart';
-import 'home_view.dart'; // ✅ Importa tu HomeView para navegar luego
+import '../home_view.dart'; // ✅ Importa tu HomeView para navegar luego
 
 class VerifyEmailView extends StatefulWidget {
   final String email;
