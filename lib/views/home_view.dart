@@ -186,74 +186,77 @@ class _BookCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     return CarouselSlider(
       options: CarouselOptions(
-        height: 160,
+        height: 200,               // 🔒 Altura fija del carrusel
         autoPlay: true,
         enlargeCenterPage: true,
-        viewportFraction: 0.5,
+        viewportFraction: 0.45,    // Ajuste para ancho consistente entre ítems
       ),
       items: books.map((book) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 6,
-                offset: Offset(2, 4),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Simulación de lomo del libro
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 12,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.brown,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      bottomLeft: Radius.circular(12),
+        return SizedBox(
+          width: 160, // 📏 Ancho fijo para cada "libro"
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 6,
+                  offset: Offset(2, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Simulación del lomo del libro
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 12,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.brown,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        bottomLeft: Radius.circular(12),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      book["title"]!,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        book["title"]!,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      book["author"]!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
+                      const SizedBox(height: 8),
+                      Text(
+                        book["author"]!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }).toList(),
