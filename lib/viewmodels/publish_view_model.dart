@@ -2,9 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:amplify_api/amplify_api.dart';
 import 'package:uuid/uuid.dart';
-
 import '../models/ModelProvider.dart';
 
 class PublishViewModel extends ChangeNotifier {
@@ -29,13 +27,13 @@ class PublishViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> publishBook(BuildContext context, VoidCallback onSuccess) async {
+  Future<void> publishBook(BuildContext context) async {
     final isbn = isbnController.text.trim();
     final title = titleController.text.trim();
     final authorName = authorController.text.trim();
     final priceText = priceController.text.trim();
 
-    if (isbn.isEmpty || title.isEmpty || authorName.isEmpty || priceText.isEmpty || selectedImage == null) {
+    if ([isbn, title, authorName, priceText].any((e) => e.isEmpty) || selectedImage == null) {
       errorMessage = "Todos los campos son obligatorios.";
       notifyListeners();
       return;
@@ -50,80 +48,75 @@ class PublishViewModel extends ChangeNotifier {
 
     try {
       isLoading = true;
+      errorMessage = null;
       notifyListeners();
 
+      // 1. Subir imagen
       final imageKey = "images/${const Uuid().v4()}.jpg";
       final imageFile = File(selectedImage!.path);
-
       debugPrint("☁️ Subiendo imagen con key: $imageKey");
 
       await Amplify.Storage.uploadFile(
         path: StoragePath.fromString(imageKey),
-        localFile: AWSFile.fromPath(imageFile.path), 
+        localFile: AWSFile.fromPath(imageFile.path),
       );
-
       debugPrint("✅ Imagen subida");
 
-      // Buscar autor o crear uno nuevo
-      final authorListRequest = ModelQueries.list(
+      // 2. Buscar o crear autor
+      final existingAuthors = await Amplify.DataStore.query(
         Author.classType,
         where: Author.NAME.eq(authorName),
       );
-      final authorResult = await Amplify.API.query(request: authorListRequest).response;
-
-      final items = authorResult.data?.items ?? [];
-      final List<Author> authors = items.whereType<Author>().toList();
 
       Author author;
-      if (authors.isNotEmpty) {
-        author = authors.first;
+      if (existingAuthors.isNotEmpty) {
+        author = existingAuthors.first;
         debugPrint("✅ Autor encontrado: ${author.id}");
       } else {
-        debugPrint("➕ Creando autor...");
-        final createAuthorResponse = await Amplify.API.mutate(
-          request: ModelMutations.create(Author(name: authorName)),
-        ).response;
-        author = createAuthorResponse.data!;
+        author = Author(name: authorName);
+        await Amplify.DataStore.save(author);
         debugPrint("✅ Autor creado: ${author.id}");
       }
 
-      // Crear libro
-      final book = Book(
-        title: title,
-        isbn: isbn,
-        thumbnail: imageKey,
-        author: author,
+      // 3. Buscar o crear libro por ISBN
+      final existingBooks = await Amplify.DataStore.query(
+        Book.classType,
+        where: Book.ISBN.eq(isbn),
       );
 
-      final createBook = await Amplify.API.mutate(
-        request: ModelMutations.create(book),
-      ).response;
-      final savedBook = createBook.data!;
-      debugPrint("✅ Libro creado: ${savedBook.id}");
+      Book book;
+      if (existingBooks.isNotEmpty) {
+        book = existingBooks.first;
+        debugPrint("⚠️ Ya existe un libro con este ISBN: ${book.id}");
+      } else {
+        book = Book(
+          title: title,
+          isbn: isbn,
+          thumbnail: imageKey,
+          author: author,
+        );
+        await Amplify.DataStore.save(book);
+        debugPrint("✅ Libro creado: ${book.id}");
+      }
 
-      // Crear listing
+      // 4. Crear Listing
       final listing = Listing(
-        book: savedBook,
+        book: book,
         price: price,
         photos: [imageKey],
       );
+      await Amplify.DataStore.save(listing);
+      debugPrint("✅ Listing creado");
 
-      await Amplify.API.mutate(
-        request: ModelMutations.create(listing),
-      ).response;
-
-      debugPrint("✅ Listing creado correctamente");
-
+      // 5. Reset + Feedback
       _reset();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("📚 Libro publicado con éxito")),
       );
-      onSuccess();
     } catch (e, st) {
       debugPrint("❌ Error al publicar: $e");
       debugPrint("📄 Stacktrace:\n$st");
       errorMessage = "Error al publicar el libro.";
-      notifyListeners();
     } finally {
       isLoading = false;
       notifyListeners();

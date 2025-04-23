@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'publish_screen.dart';
 import 'notifications_screen.dart';
 import 'user_profile_view.dart'; // 👈 Importación correcta
-import 'search_view.dart'; // 🔁 Asegúrate de que la ruta es correcta
+import 'search/search_view.dart'; // 🔁 Asegúrate de que la ruta es correcta
 
 
 List<Map<String, String>> publishedBooks = [];
@@ -20,9 +20,9 @@ class _HomeViewState extends State<HomeView> {
 
   void _onItemTapped(int index) {
   if (index == 1) {
-    // 🔥 Si toca el ícono de búsqueda, hacer fetch de libros
     final booksVM = Provider.of<BooksViewModel>(context, listen: false);
     booksVM.fetchBooks();
+    booksVM.fetchPublishedListings();
   }
   
   setState(() {

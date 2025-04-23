@@ -100,9 +100,7 @@ class _PublishScreenBody extends StatelessWidget {
               ElevatedButton(
                 onPressed: viewModel.isLoading
                     ? null
-                    : () => viewModel.publishBook(context, () {
-                        Navigator.pop(context);
-                      }),
+                    : () => viewModel.publishBook(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,

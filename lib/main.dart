@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_api/amplify_api.dart'; // Para usar GraphQL y REST
+import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 
@@ -35,6 +36,9 @@ Future<void> configureAmplify() async {
         ),
       );
       await Amplify.addPlugin(apiPlugin);
+
+      print("🔌 Agregando plugin de Storage (S3)...");
+      await Amplify.addPlugin(AmplifyStorageS3());
 
       print("⚙️ Configurando Amplify...");
       await Amplify.configure(jsonEncode(config));
