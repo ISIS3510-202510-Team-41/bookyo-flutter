@@ -9,38 +9,33 @@ import 'user_profile_view.dart';
 import 'search/search_view.dart';
 import 'user_library/user_library_view.dart';
 
-List<Map<String, String>> publishedBooks = [];
-
 class HomeView extends StatefulWidget {
   @override
-  _HomeViewState createState() => _HomeViewState();
+  State<HomeView> createState() => _HomeViewState();
 }
 
 class _HomeViewState extends State<HomeView> {
   int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    if (index == 1) {
-      final booksVM = Provider.of<BooksViewModel>(context, listen: false);
-      booksVM.fetchBooks();
-      booksVM.fetchPublishedListings();
-    }
-
-    if (index == 4) {
-      final userLibraryVM = Provider.of<UserLibraryViewModel>(context, listen: false);
-      userLibraryVM.loadUserLibrary();
-    }
-
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
 
   void _goToProfile() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => UserProfileView()),
     );
+  }
+
+  void _onItemTapped(int index) {
+    final booksVM = Provider.of<BooksViewModel>(context, listen: false);
+    final userLibraryVM = Provider.of<UserLibraryViewModel>(context, listen: false);
+
+    if (index == 1) {
+      booksVM.fetchBooks();
+      booksVM.fetchPublishedListings();
+    } else if (index == 4) {
+      userLibraryVM.loadUserListings();
+    }
+
+    setState(() => _selectedIndex = index);
   }
 
   @override
@@ -56,20 +51,18 @@ class _HomeViewState extends State<HomeView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
-            onPressed: () {
-              _onItemTapped(1);
-            },
+            onPressed: () => _onItemTapped(1),
           ),
         ],
       ),
       body: IndexedStack(
         index: _selectedIndex,
-        children: [
-          HomeScreen(onTabSelected: _onItemTapped), // 0
-          const SearchView(),                       // 1
-          const PublishScreen(),                    // 2
-          const NotificationsScreen(),              // 3
-          const UserLibraryView(),                  // 4 👈 Biblioteca del usuario
+        children: const [
+          _HomeScreen(),         // 0
+          SearchView(),          // 1
+          PublishScreen(),       // 2
+          NotificationsScreen(), // 3
+          UserLibraryView(),     // 4
         ],
       ),
       bottomNavigationBar: Column(
@@ -77,20 +70,20 @@ class _HomeViewState extends State<HomeView> {
         children: [
           const Divider(color: Colors.grey),
           BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: const Color(0xFFDB995A),
+            unselectedItemColor: Colors.grey,
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.add_box), label: ''),
               BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
-              BottomNavigationBarItem(icon: Icon(Icons.menu), label: ''), // 👈 Menú
+              BottomNavigationBarItem(icon: Icon(Icons.menu), label: ''),
             ],
-            currentIndex: _selectedIndex,
-            selectedItemColor: Color(0xFFDB995A),
-            unselectedItemColor: Colors.grey,
-            onTap: _onItemTapped,
-            type: BottomNavigationBarType.fixed,
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
           ),
         ],
       ),
@@ -99,36 +92,40 @@ class _HomeViewState extends State<HomeView> {
 }
 
 // ----------------------------------------------
-// 🔹 HomeScreen principal (explorar libros / publicar)
-class HomeScreen extends StatelessWidget {
-  final Function(int) onTabSelected;
-
-  const HomeScreen({Key? key, required this.onTabSelected}) : super(key: key);
+// 🔹 Pantalla principal (Home)
+class _HomeScreen extends StatelessWidget {
+  const _HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, String>> publishedBooks = [
+      {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"},
+      {"title": "1984", "author": "George Orwell"},
+      {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
+    ];
+
     final List<Map<String, String>> books = publishedBooks.isNotEmpty
         ? publishedBooks
-        : [
+        : const [
             {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"},
             {"title": "1984", "author": "George Orwell"},
             {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
           ];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           const SizedBox(height: 10),
-          OptionCard(
+          _OptionCard(
             title: "Browse Books",
-            onTap: () => onTabSelected(1),
-            imageContent: BookCarousel(books: books),
+            onTap: () => DefaultTabController.of(context).animateTo(1),
+            imageContent: _BookCarousel(books: books),
           ),
           const SizedBox(height: 20),
-          OptionCard(
+          _OptionCard(
             title: "Publish Book",
-            onTap: () => onTabSelected(2),
+            onTap: () => DefaultTabController.of(context).animateTo(2),
           ),
           const SizedBox(height: 50),
         ],
@@ -138,13 +135,13 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ----------------------------------------------
-// 🔹 Tarjeta de opciones
-class OptionCard extends StatelessWidget {
+// 🔹 Tarjeta de opción
+class _OptionCard extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
   final Widget? imageContent;
 
-  const OptionCard({Key? key, required this.title, required this.onTap, this.imageContent}) : super(key: key);
+  const _OptionCard({Key? key, required this.title, required this.onTap, this.imageContent}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -180,10 +177,10 @@ class OptionCard extends StatelessWidget {
 
 // ----------------------------------------------
 // 🔹 Carrusel de libros
-class BookCarousel extends StatelessWidget {
+class _BookCarousel extends StatelessWidget {
   final List<Map<String, String>> books;
 
-  const BookCarousel({Key? key, required this.books}) : super(key: key);
+  const _BookCarousel({Key? key, required this.books}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +192,7 @@ class BookCarousel extends StatelessWidget {
       ),
       items: books.map((book) {
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5.0),
+          margin: const EdgeInsets.symmetric(horizontal: 5),
           decoration: BoxDecoration(
             color: Colors.grey[300],
             borderRadius: BorderRadius.circular(10),

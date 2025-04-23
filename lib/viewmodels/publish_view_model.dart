@@ -110,33 +110,34 @@ class PublishViewModel extends ChangeNotifier {
 
       // 5. Asociar el libro a la UserLibrary
       try {
-        // 5.1 Obtener email real del usuario autenticado
         final attributes = await Amplify.Auth.fetchUserAttributes();
-        final email = attributes.firstWhere((a) => a.userAttributeKey.key == 'email').value;
+        final emailAttr = attributes.firstWhere((a) => a.userAttributeKey.key == 'email');
+        final email = emailAttr.value;
+        debugPrint("📧 Email obtenido para asociación de UserLibrary: $email");
 
-        // 5.2 Buscar o crear User
         final users = await Amplify.DataStore.query(
           User.classType,
           where: User.EMAIL.eq(email),
         );
 
-        User user;
-        if (users.isEmpty) {
-          user = User(email: email);
-          await Amplify.DataStore.save(user);
-          debugPrint("👤 Usuario creado: ${user.email}");
-        } else {
+        late final User user;
+
+        if (users.isNotEmpty) {
           user = users.first;
           debugPrint("👤 Usuario encontrado: ${user.email}");
+        } else {
+          user = User(email: email);
+          await Amplify.DataStore.save(user);
+          debugPrint("✅ Usuario creado: ${user.email}");
         }
 
-        // 5.3 Buscar o crear UserLibrary
         final userLibraries = await Amplify.DataStore.query(
           UserLibrary.classType,
           where: UserLibrary.USER.eq(user),
         );
 
-        UserLibrary userLibrary;
+        late final UserLibrary userLibrary;
+
         if (userLibraries.isNotEmpty) {
           userLibrary = userLibraries.first;
           debugPrint("📚 Biblioteca encontrada: ${userLibrary.id}");
@@ -146,22 +147,26 @@ class PublishViewModel extends ChangeNotifier {
           debugPrint("📚 Biblioteca creada: ${userLibrary.id}");
         }
 
-        // 5.4 Asociar el libro a la biblioteca del usuario
-        final bookLibrary = BookLibrary(
-          book: book,
-          userLibraryRef: userLibrary,
+        final existingLinks = await Amplify.DataStore.query(
+          BookLibrary.classType,
+          where: BookLibrary.USERLIBRARYREF.eq(userLibrary).and(BookLibrary.BOOK.eq(book)),
         );
-        await Amplify.DataStore.save(bookLibrary);
-        debugPrint("📎 Libro asociado a la biblioteca del usuario");
 
-        // Debug opcional
-        final allBookLibraries = await Amplify.DataStore.query(BookLibrary.classType);
-        debugPrint("📦 Total BookLibraries en DataStore: ${allBookLibraries.length}");
-      } catch (e) {
-        debugPrint("⚠️ No se pudo asociar el libro a la biblioteca del usuario: $e");
+        if (existingLinks.isEmpty) {
+          final bookLibrary = BookLibrary(
+            book: book,
+            userLibraryRef: userLibrary,
+          );
+          await Amplify.DataStore.save(bookLibrary);
+          debugPrint("✅ Libro agregado a la biblioteca del usuario");
+        } else {
+          debugPrint("⚠️ El libro ya estaba en la biblioteca del usuario");
+        }
+      } catch (e, st) {
+        debugPrint("❌ Error al asociar libro con UserLibrary: $e");
+        debugPrint("📄 Stacktrace: $st");
       }
 
-      // 6. Reset + Feedback
       _reset();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("📚 Libro publicado con éxito")),
@@ -175,7 +180,6 @@ class PublishViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   void _reset() {
     isbnController.clear();

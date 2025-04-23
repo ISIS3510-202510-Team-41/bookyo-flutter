@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../viewmodels/books_vm.dart';
 import '../../models/Book.dart';
-import '../../viewmodels/user_library_vm.dart';
 
 class UserLibraryView extends StatefulWidget {
   const UserLibraryView({Key? key}) : super(key: key);
@@ -14,58 +14,85 @@ class _UserLibraryViewState extends State<UserLibraryView> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => context.read<UserLibraryViewModel>().loadUserLibrary());
+    Future.microtask(() =>
+        context.read<BooksViewModel>().fetchUserListings());
   }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<UserLibraryViewModel>();
+    final booksVM = context.watch<BooksViewModel>();
 
     return Scaffold(
       appBar: AppBar(title: const Text("My Library")),
-      body: vm.isLoading
+      body: booksVM.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : vm.errorMessage != null
-              ? Center(child: Text(vm.errorMessage!, style: const TextStyle(color: Colors.red)))
-              : vm.userBooks.isEmpty
-                  ? const Center(child: Text("Your library is empty."))
+          : booksVM.errorMessage != null
+              ? Center(
+                  child: Text(booksVM.errorMessage!,
+                      style: const TextStyle(color: Colors.red)))
+              : booksVM.publishedListings.isEmpty
+                  ? const Center(child: Text('You have not listed any books yet.'))
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
-                      itemCount: vm.userBooks.length,
+                      itemCount: booksVM.publishedListings.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        return _BookCard(book: vm.userBooks[index]);
+                        final listing = booksVM.publishedListings[index];
+                        final book = listing.book;
+                        if (book == null) return const SizedBox.shrink();
+                        return _BookListingCard(
+                          book: book,
+                          price: listing.price,
+                          imageUrl: book.thumbnail,
+                        );
                       },
                     ),
     );
   }
 }
 
-class _BookCard extends StatelessWidget {
+class _BookListingCard extends StatelessWidget {
   final Book book;
+  final double price;
+  final String? imageUrl;
 
-  const _BookCard({Key? key, required this.book}) : super(key: key);
+  const _BookListingCard({
+    Key? key,
+    required this.book,
+    required this.price,
+    this.imageUrl,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
+      elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        leading: _buildThumbnail(book.thumbnail),
+        leading: _buildThumbnail(),
         title: Text(book.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(book.author?.name ?? 'Unknown author'),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(book.author?.name ?? 'Unknown author'),
+            const SizedBox(height: 4),
+            Text(
+              '\$${price.toStringAsFixed(2)}',
+              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildThumbnail(String? url) {
-    if (url != null && url.isNotEmpty) {
+  Widget _buildThumbnail() {
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.network(
-          url,
+          imageUrl!,
           width: 60,
           height: 80,
           fit: BoxFit.cover,

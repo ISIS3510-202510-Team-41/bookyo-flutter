@@ -107,6 +107,34 @@ class BooksViewModel extends ChangeNotifier {
     }
   }
 
+    /// 📚 Fetch de listings publicados por el usuario autenticado
+  Future<void> fetchUserListings() async {
+    _setLoading(true);
+
+    try {
+      final attributes = await Amplify.Auth.fetchUserAttributes();
+      final email = attributes
+          .firstWhere((a) => a.userAttributeKey.key == 'email')
+          .value;
+      debugPrint("📧 Email autenticado: $email");
+
+      final listings = await Amplify.DataStore.query(Listing.classType);
+
+      _publishedListings = listings.where((listing) {
+        final user = listing.user;
+        return user != null && user.email == email;
+      }).toList();
+
+      _errorMessage = null;
+      debugPrint("✅ Listings del usuario cargados: ${_publishedListings.length}");
+    } catch (e) {
+      _errorMessage = 'Error fetching user listings: $e';
+      _publishedListings = [];
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// 🔎 Búsqueda en la lista completa de libros registrados
   List<Book> searchBooks(String query) {
     final normalizedQuery = query.trim().toLowerCase();

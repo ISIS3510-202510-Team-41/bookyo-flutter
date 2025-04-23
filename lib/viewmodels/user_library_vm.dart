@@ -3,61 +3,51 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import '../models/ModelProvider.dart';
 
 class UserLibraryViewModel extends ChangeNotifier {
-  bool isLoading = false;
-  String? errorMessage;
-  List<Book> userBooks = [];
+  // Estado
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<Listing> _userListings = [];
 
-  Future<void> loadUserLibrary() async {
+  // Getters
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  List<Listing> get userListings => _userListings;
+
+  // Método principal: obtener listings del usuario autenticado
+  Future<void> loadUserListings() async {
+    _setLoading(true);
     try {
-      isLoading = true;
-      errorMessage = null;
-      notifyListeners();
-
+      // Obtener email autenticado
       final attributes = await Amplify.Auth.fetchUserAttributes();
-      final email = attributes.firstWhere((a) => a.userAttributeKey.key == 'email').value;
-      debugPrint("📧 Email del usuario autenticado: $email");
+      final email = attributes
+          .firstWhere((a) => a.userAttributeKey.key == 'email')
+          .value;
+      debugPrint("📧 Email autenticado: $email");
 
-      // Buscar al User por email (clave primaria)
-      final users = await Amplify.DataStore.query(
-        User.classType,
-        where: User.EMAIL.eq(email),
-      );
+      // Cargar todos los listings
+      final allListings = await Amplify.DataStore.query(Listing.classType);
 
-      if (users.isEmpty) {
-        debugPrint("🚫 No se encontró ningún User con ese email");
-        userBooks = [];
-        return;
-      }
+      // Filtrar por user.email localmente
+      _userListings = allListings.where((listing) {
+        final user = listing.user;
+        return user != null && user.email == email;
+      }).toList();
 
-      final currentUser = users.first;
-
-      final userLibraries = await Amplify.DataStore.query(
-        UserLibrary.classType,
-        where: UserLibrary.USER.eq(currentUser),
-      );
-
-      if (userLibraries.isEmpty) {
-        debugPrint("📭 No se encontró UserLibrary para el usuario: ${currentUser.email}");
-        userBooks = [];
-      } else {
-        final lib = userLibraries.first;
-        final bookLibraries = lib.books ?? [];
-        debugPrint("📚 Biblioteca encontrada: ${lib.id}, con ${bookLibraries.length} BookLibrary");
-
-        userBooks = bookLibraries
-            .map((entry) => entry.book)
-            .whereType<Book>()
-            .toList();
-
-        debugPrint("✅ Libros cargados en userBooks: ${userBooks.length}");
-      }
+      _errorMessage = null;
+      debugPrint("📦 Listings filtrados por email: ${_userListings.length}");
     } catch (e, st) {
-      errorMessage = "Failed to load your library.";
-      debugPrint("❌ Error en loadUserLibrary(): $e");
-      debugPrint("📄 Stacktrace: $st");
+      _errorMessage = "Failed to load your listings.";
+      _userListings = [];
+      debugPrint("❌ Error en loadUserListings: $e");
+      debugPrint("📄 Stacktrace:\n$st");
     } finally {
-      isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
+  }
+
+  // Control interno de carga
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
   }
 }
