@@ -48,7 +48,10 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
     final thumbnail = book.thumbnail;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Manage Listing")),
+      appBar: AppBar(
+        title: const Text("Manage Book"),
+        centerTitle: true,
+      ),
       body: Center(
         child: SlideTransition(
           position: _slideAnimation,

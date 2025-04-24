@@ -51,18 +51,18 @@ class _HomeViewState extends State<HomeView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
-            onPressed: () => _onItemTapped(1),
+            onPressed: () => _onItemTapped(1), // Navega a SearchView
           ),
         ],
       ),
       body: IndexedStack(
         index: _selectedIndex,
-        children: const [
-          _HomeScreen(),         // 0
-          SearchView(),          // 1
-          PublishScreen(),       // 2
-          NotificationsScreen(), // 3
-          UserLibraryView(),     // 4
+        children: [
+          _HomeScreen(onTabSelected: _onItemTapped), // 0
+          const SearchView(),                        // 1
+          const PublishScreen(),                     // 2
+          const NotificationsScreen(),               // 3
+          const UserLibraryView(),                   // 4
         ],
       ),
       bottomNavigationBar: Column(
@@ -94,7 +94,9 @@ class _HomeViewState extends State<HomeView> {
 // ----------------------------------------------
 // 🔹 Pantalla principal (Home)
 class _HomeScreen extends StatelessWidget {
-  const _HomeScreen({Key? key}) : super(key: key);
+  final void Function(int) onTabSelected;
+
+  const _HomeScreen({Key? key, required this.onTabSelected}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -112,23 +114,27 @@ class _HomeScreen extends StatelessWidget {
             {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
           ];
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          _OptionCard(
-            title: "Browse Books",
-            onTap: () => DefaultTabController.of(context).animateTo(1),
-            imageContent: _BookCarousel(books: books),
+    return SizedBox(
+      height: MediaQuery.of(context).size.height - kToolbarHeight - 100,
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _OptionCard(
+                title: "Browse Books",
+                onTap: () => onTabSelected(1), // Navega a búsqueda
+                imageContent: _BookCarousel(books: books),
+              ),
+              const SizedBox(height: 20),
+              _OptionCard(
+                title: "Publish Book",
+                onTap: () => onTabSelected(2), // Navega a publicación
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          _OptionCard(
-            title: "Publish Book",
-            onTap: () => DefaultTabController.of(context).animateTo(2),
-          ),
-          const SizedBox(height: 50),
-        ],
+        ),
       ),
     );
   }
@@ -141,7 +147,8 @@ class _OptionCard extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? imageContent;
 
-  const _OptionCard({Key? key, required this.title, required this.onTap, this.imageContent}) : super(key: key);
+  const _OptionCard({Key? key, required this.title, required this.onTap, this.imageContent})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +163,8 @@ class _OptionCard extends StatelessWidget {
               height: 150,
               width: double.infinity,
               color: Colors.grey[300],
-              child: imageContent ?? const Icon(Icons.image, size: 80, color: Colors.black26),
+              child: imageContent ??
+                  const Icon(Icons.image, size: 80, color: Colors.black26),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
@@ -186,14 +194,14 @@ class _BookCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     return CarouselSlider(
       options: CarouselOptions(
-        height: 200,               // 🔒 Altura fija del carrusel
+        height: 200,
         autoPlay: true,
         enlargeCenterPage: true,
-        viewportFraction: 0.45,    // Ajuste para ancho consistente entre ítems
+        viewportFraction: 0.45,
       ),
       items: books.map((book) {
         return SizedBox(
-          width: 160, // 📏 Ancho fijo para cada "libro"
+          width: 160,
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
@@ -209,7 +217,6 @@ class _BookCarousel extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                // Simulación del lomo del libro
                 Positioned(
                   left: 0,
                   top: 0,
