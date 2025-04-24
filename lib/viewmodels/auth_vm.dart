@@ -2,6 +2,7 @@ import 'package:amplify_api/amplify_api.dart';
 import 'package:bookyo_flutter/models/User.dart';
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterResult {
   final bool success;
@@ -240,10 +241,18 @@ class AuthViewModel with ChangeNotifier {
       if (response.data != null) {
         print("✅ User profile fetched: ${response.data!.email}");
         currentUser = response.data;
+
+        // 🧠 Guardar en SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('firstName', response.data?.firstName ?? '');
+        await prefs.setString('lastName', response.data?.lastName ?? '');
+        await prefs.setString('email', response.data?.email ?? '');
+        await prefs.setString('phone', response.data?.phone ?? '');
+        await prefs.setString('address', response.data?.address ?? '');
+
         notifyListeners();
         return currentUser;
       } else {
-        // 👇 Si no existe, lo creamos con datos mínimos
         print("⚠️ No existe perfil en base de datos, creando usuario básico...");
 
         final user = User(email: userEmail!);
