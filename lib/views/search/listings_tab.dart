@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/Listing.dart';
-import '../../models/Book.dart';
+import '../../views/Book/book_detail_view.dart'; // 👈 Asegúrate de tener este import
 
 class ListingsTab extends StatelessWidget {
   final List<Listing> listings;
@@ -19,41 +19,44 @@ class ListingsTab extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final listing = listings[index];
-        final book = listing.book;
-        if (book == null) return const SizedBox.shrink();
-        return _BookListingCard(book: book, price: listing.price, imageUrl: book.thumbnail);
+        if (listing.book == null) return const SizedBox.shrink();
+        return _BookListingCard(listing: listing);
       },
     );
   }
 }
 
 class _BookListingCard extends StatelessWidget {
-  final Book book;
-  final double price;
-  final String? imageUrl;
+  final Listing listing;
 
-  const _BookListingCard({
-    Key? key,
-    required this.book,
-    required this.price,
-    this.imageUrl,
-  }) : super(key: key);
+  const _BookListingCard({Key? key, required this.listing}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final book = listing.book!;
+    final imageUrl = book.thumbnail;
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BookDetailView(listing: listing),
+            ),
+          );
+        },
         contentPadding: const EdgeInsets.all(12),
-        leading: _buildThumbnail(),
+        leading: _buildThumbnail(imageUrl),
         title: Text(book.title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(book.author?.name ?? 'Unknown author'),
             const SizedBox(height: 4),
-            Text('\$${price.toStringAsFixed(2)}',
+            Text('\$${listing.price.toStringAsFixed(2)}',
                 style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500)),
           ],
         ),
@@ -61,12 +64,12 @@ class _BookListingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildThumbnail() {
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
+  Widget _buildThumbnail(String? imageUrl) {
+    if (imageUrl != null && imageUrl.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.network(
-          imageUrl!,
+          imageUrl,
           width: 60,
           height: 80,
           fit: BoxFit.cover,

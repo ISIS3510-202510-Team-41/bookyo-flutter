@@ -123,6 +123,26 @@ class BooksViewModel extends ChangeNotifier {
     }
   }
 
+  /// ❌ Eliminar un Listing del usuario
+Future<void> deleteListing(Listing listing) async {
+  _setLoading(true);
+  try {
+    await Amplify.DataStore.delete(listing);
+
+    // Eliminar también localmente
+    _userListings.removeWhere((l) => l.id == listing.id);
+    _publishedListings.removeWhere((l) => l.id == listing.id);
+
+    notifyListeners();
+    debugPrint("🗑️ Listing eliminado: ${listing.id}");
+  } catch (e) {
+    _errorMessage = 'Error deleting listing: $e';
+    debugPrint("❌ Error deleting listing: $e");
+  } finally {
+    _setLoading(false);
+  }
+}
+
   /// 🔎 Buscar en todos los libros por título o autor
   List<Book> searchBooks(String query) {
     final normalized = query.trim().toLowerCase();

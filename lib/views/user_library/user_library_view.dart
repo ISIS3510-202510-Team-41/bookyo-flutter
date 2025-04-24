@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../viewmodels/books_vm.dart';
-import '../../models/Book.dart';
+import '../../viewmodels/user_library_vm.dart';
+import '../../models/Listing.dart';
+import '../../views/Book/userbook_detail_view.dart';
 
 class UserLibraryView extends StatefulWidget {
   const UserLibraryView({Key? key}) : super(key: key);
@@ -15,36 +16,32 @@ class _UserLibraryViewState extends State<UserLibraryView> {
   void initState() {
     super.initState();
     Future.microtask(() =>
-        context.read<BooksViewModel>().fetchUserListings());
+        context.read<UserLibraryViewModel>().loadUserListings());
   }
 
   @override
   Widget build(BuildContext context) {
-    final booksVM = context.watch<BooksViewModel>();
+    final vm = context.watch<UserLibraryViewModel>();
 
     return Scaffold(
       appBar: AppBar(title: const Text("My Library")),
-      body: booksVM.isLoading
+      body: vm.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : booksVM.errorMessage != null
+          : vm.errorMessage != null
               ? Center(
-                  child: Text(booksVM.errorMessage!,
+                  child: Text(vm.errorMessage!,
                       style: const TextStyle(color: Colors.red)))
-              : booksVM.userListings.isEmpty
+              : vm.userListings.isEmpty
                   ? const Center(child: Text('You have not listed any books yet.'))
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
-                      itemCount: booksVM.userListings.length,
+                      itemCount: vm.userListings.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final listing = booksVM.userListings[index];
+                        final listing = vm.userListings[index];
                         final book = listing.book;
                         if (book == null) return const SizedBox.shrink();
-                        return _BookListingCard(
-                          book: book,
-                          price: listing.price,
-                          imageUrl: book.thumbnail,
-                        );
+                        return _BookListingCard(listing: listing);
                       },
                     ),
     );
@@ -52,47 +49,60 @@ class _UserLibraryViewState extends State<UserLibraryView> {
 }
 
 class _BookListingCard extends StatelessWidget {
-  final Book book;
-  final double price;
-  final String? imageUrl;
+  final Listing listing;
 
-  const _BookListingCard({
-    Key? key,
-    required this.book,
-    required this.price,
-    this.imageUrl,
-  }) : super(key: key);
+  const _BookListingCard({Key? key, required this.listing}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: _buildThumbnail(),
-        title: Text(book.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(book.author?.name ?? 'Unknown author'),
-            const SizedBox(height: 4),
-            Text(
-              '\$${price.toStringAsFixed(2)}',
-              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
-            ),
-          ],
+    final book = listing.book!;
+    final imageUrl = book.thumbnail;
+
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UserBookDetailView(listing: listing),
+          ),
+        );
+
+        if (result == 'deleted' && context.mounted) {
+          await context.read<UserLibraryViewModel>().loadUserListings();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Listing successfully deleted")),
+          );
+        }
+      },
+      child: Card(
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ListTile(
+          contentPadding: const EdgeInsets.all(12),
+          leading: _buildThumbnail(imageUrl),
+          title: Text(book.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(book.author?.name ?? 'Unknown author'),
+              const SizedBox(height: 4),
+              Text(
+                '\$${listing.price.toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildThumbnail() {
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
+  Widget _buildThumbnail(String? url) {
+    if (url != null && url.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.network(
-          imageUrl!,
+          url,
           width: 60,
           height: 80,
           fit: BoxFit.cover,
