@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../viewmodels/auth_vm.dart';
-import '../../viewmodels/user_vm.dart'; // 🚨 Importa el UserViewModel
+import '../../viewmodels/user_vm.dart';
 import '../home_view.dart';
 import 'register_view.dart';
 
@@ -31,13 +32,22 @@ class _LoginViewState extends State<LoginView> {
 
     setState(() => isLoading = true);
 
-    bool success = await authVM.login(
-      emailController.text.trim(),
-      passwordController.text.trim(),
-    );
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    bool success = await authVM.login(email, password);
 
     if (success) {
-      await userVM.fetchUser(); // 🔥 Después de login exitoso, traemos los datos del usuario
+      await userVM.fetchUser(); // 🔥 cargar atributos adicionales desde Amplify.Auth
+      final user = authVM.user;
+
+      // 🧠 Guardar en SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('firstName', user?.firstName ?? '');
+      await prefs.setString('lastName', user?.lastName ?? '');
+      await prefs.setString('email', user?.email ?? '');
+      await prefs.setString('phone', user?.phone ?? '');
+      await prefs.setString('address', user?.address ?? '');
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -90,9 +100,7 @@ class _LoginViewState extends State<LoginView> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                    ),
+                    icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
                     onPressed: () {
                       setState(() {
                         _obscurePassword = !_obscurePassword;
