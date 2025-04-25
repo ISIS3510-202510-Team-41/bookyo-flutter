@@ -170,7 +170,7 @@ class _LoginViewState extends State<LoginView> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text(
-                    "Register",
+                    "Sign up",
                     style: TextStyle(fontSize: 18, color: Colors.black),
                   ),
                 ),
