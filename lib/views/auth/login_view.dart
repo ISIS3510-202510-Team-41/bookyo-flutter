@@ -35,29 +35,50 @@ class _LoginViewState extends State<LoginView> {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    bool success = await authVM.login(email, password);
+    try {
+      bool success = await authVM.login(email, password);
 
-    if (success) {
-      await userVM.fetchUser(); // 🔥 cargar atributos adicionales desde Amplify.Auth
-      final user = authVM.user;
+      if (success) {
+        await userVM.fetchUser();
+        final user = authVM.user;
 
-      // 🧠 Guardar en SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('firstName', user?.firstName ?? '');
-      await prefs.setString('lastName', user?.lastName ?? '');
-      await prefs.setString('email', user?.email ?? '');
-      await prefs.setString('phone', user?.phone ?? '');
-      await prefs.setString('address', user?.address ?? '');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('firstName', user?.firstName ?? '');
+        await prefs.setString('lastName', user?.lastName ?? '');
+        await prefs.setString('email', user?.email ?? '');
+        await prefs.setString('phone', user?.phone ?? '');
+        await prefs.setString('address', user?.address ?? '');
 
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => HomeView()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Login failed')),
-      );
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomeView()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Login failed.')),
+        );
+      }
+    } catch (e) {
+      final errorMessage = e.toString().toLowerCase();
+
+      if (errorMessage.contains('network') || errorMessage.contains('host lookup')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("❌ Login failed. Please check your internet connection."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("❌ Unknown error: ${e.toString()}"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+
+      debugPrint("❌ Login error: $e");
     }
 
     setState(() => isLoading = false);
@@ -78,11 +99,13 @@ class _LoginViewState extends State<LoginView> {
                 'assets/BOOKYO_LOGO.png',
                 height: 200,
                 errorBuilder: (context, error, stackTrace) {
-                  return const Text("Error loading logo", style: TextStyle(color: Colors.red));
+                  return const Text(
+                    "Error loading logo",
+                    style: TextStyle(color: Colors.red),
+                  );
                 },
               ),
               const SizedBox(height: 30),
-
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -92,7 +115,6 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
               const SizedBox(height: 16),
-
               TextField(
                 controller: passwordController,
                 decoration: InputDecoration(
@@ -111,7 +133,6 @@ class _LoginViewState extends State<LoginView> {
                 obscureText: _obscurePassword,
               ),
               const SizedBox(height: 30),
-
               SizedBox(
                 width: MediaQuery.of(context).size.width / 2,
                 child: ElevatedButton(
@@ -127,11 +148,13 @@ class _LoginViewState extends State<LoginView> {
                           height: 24,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text("Login", style: TextStyle(fontSize: 18, color: Colors.black)),
+                      : const Text(
+                          "Login",
+                          style: TextStyle(fontSize: 18, color: Colors.black),
+                        ),
                 ),
               ),
               const SizedBox(height: 10),
-
               SizedBox(
                 width: MediaQuery.of(context).size.width / 2,
                 child: ElevatedButton(
@@ -146,7 +169,10 @@ class _LoginViewState extends State<LoginView> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text("Register", style: TextStyle(fontSize: 18, color: Colors.black)),
+                  child: const Text(
+                    "Sign up",
+                    style: TextStyle(fontSize: 18, color: Colors.black),
+                  ),
                 ),
               ),
             ],

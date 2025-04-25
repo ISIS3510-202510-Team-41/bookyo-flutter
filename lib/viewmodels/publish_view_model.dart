@@ -20,10 +20,10 @@ class PublishViewModel extends ChangeNotifier {
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
       selectedImage = picked;
-      debugPrint("✅ Imagen seleccionada: ${picked.path}");
+      debugPrint("✅ Image selected: ${picked.path}");
       notifyListeners();
     } else {
-      debugPrint("⚠️ Selección de imagen cancelada.");
+      debugPrint("⚠️ Image selection canceled.");
     }
   }
 
@@ -34,15 +34,28 @@ class PublishViewModel extends ChangeNotifier {
     final priceText = priceController.text.trim();
 
     if ([isbn, title, authorName, priceText].any((e) => e.isEmpty) || selectedImage == null) {
-      errorMessage = "Todos los campos son obligatorios.";
+      errorMessage = "All fields are required.";
       notifyListeners();
       return;
     }
 
     final double? price = double.tryParse(priceText);
     if (price == null || price <= 0) {
-      errorMessage = "Precio inválido";
+      errorMessage = "Invalid price.";
       notifyListeners();
+      return;
+    }
+
+    // 🔍 Check connection
+    try {
+      await Amplify.Auth.fetchAuthSession(); // this will throw if there's no connection
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("❌ Could not publish. Check your internet connection."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
 
@@ -51,7 +64,6 @@ class PublishViewModel extends ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
-      // Obtener el usuario autenticado
       final attributes = await Amplify.Auth.fetchUserAttributes();
       final email = attributes.firstWhere((a) => a.userAttributeKey.key == 'email').value;
       final users = await Amplify.DataStore.query(User.classType, where: User.EMAIL.eq(email));
@@ -59,25 +71,23 @@ class PublishViewModel extends ChangeNotifier {
 
       if (users.isNotEmpty) {
         user = users.first;
-        debugPrint("👤 Usuario encontrado: ${user.email}");
+        debugPrint("👤 User found: ${user.email}");
       } else {
         user = User(email: email);
         await Amplify.DataStore.save(user);
-        debugPrint("✅ Usuario creado: ${user.email}");
+        debugPrint("✅ User created: ${user.email}");
       }
 
-      // Subir imagen a S3
       final imageKey = "images/${const Uuid().v4()}.jpg";
       final imageFile = File(selectedImage!.path);
-      debugPrint("☁️ Subiendo imagen con key: $imageKey");
+      debugPrint("☁️ Uploading image with key: $imageKey");
 
       await Amplify.Storage.uploadFile(
         path: StoragePath.fromString(imageKey),
         localFile: AWSFile.fromPath(imageFile.path),
       );
-      debugPrint("✅ Imagen subida");
+      debugPrint("✅ Image uploaded");
 
-      // Buscar o crear autor
       final existingAuthors = await Amplify.DataStore.query(
         Author.classType,
         where: Author.NAME.eq(authorName),
@@ -86,14 +96,13 @@ class PublishViewModel extends ChangeNotifier {
       Author author;
       if (existingAuthors.isNotEmpty) {
         author = existingAuthors.first;
-        debugPrint("✅ Autor encontrado: ${author.id}");
+        debugPrint("✅ Author found: ${author.id}");
       } else {
         author = Author(name: authorName);
         await Amplify.DataStore.save(author);
-        debugPrint("✅ Autor creado: ${author.id}");
+        debugPrint("✅ Author created: ${author.id}");
       }
 
-      // Buscar o crear libro por ISBN
       final existingBooks = await Amplify.DataStore.query(
         Book.classType,
         where: Book.ISBN.eq(isbn),
@@ -102,7 +111,7 @@ class PublishViewModel extends ChangeNotifier {
       Book book;
       if (existingBooks.isNotEmpty) {
         book = existingBooks.first;
-        debugPrint("⚠️ Ya existe un libro con este ISBN: ${book.id}");
+        debugPrint("⚠️ A book with this ISBN already exists: ${book.id}");
       } else {
         book = Book(
           title: title,
@@ -111,10 +120,9 @@ class PublishViewModel extends ChangeNotifier {
           author: author,
         );
         await Amplify.DataStore.save(book);
-        debugPrint("✅ Libro creado: ${book.id}");
+        debugPrint("✅ Book created: ${book.id}");
       }
 
-      // Crear Listing con el usuario asociado
       final listing = Listing(
         book: book,
         price: price,
@@ -122,16 +130,16 @@ class PublishViewModel extends ChangeNotifier {
         user: user,
       );
       await Amplify.DataStore.save(listing);
-      debugPrint("✅ Listing creado con usuario");
+      debugPrint("✅ Listing created with user");
 
       _reset();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("📚 Libro publicado con éxito")),
+        const SnackBar(content: Text("📚 Book published successfully")),
       );
     } catch (e, st) {
-      debugPrint("❌ Error al publicar: $e");
+      debugPrint("❌ Error publishing: $e");
       debugPrint("📄 Stacktrace:\n$st");
-      errorMessage = "Error al publicar el libro.";
+      errorMessage = "Error publishing the book.";
     } finally {
       isLoading = false;
       notifyListeners();
