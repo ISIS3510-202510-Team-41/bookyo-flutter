@@ -5,45 +5,30 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
-import 'package:amplify_api/amplify_api.dart'; // Para usar GraphQL y REST
+import 'package:amplify_api/amplify_api.dart';
 import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 
-import 'models/ModelProvider.dart'; // Modelos generados automáticamente
+import 'models/ModelProvider.dart';
 import 'viewmodels/auth_vm.dart';
-import 'viewmodels/user_vm.dart'; 
-import 'views/splash_view.dart';  
+import 'viewmodels/user_vm.dart';
+import 'views/splash_view.dart';
 
 Future<void> configureAmplify() async {
   try {
     print("⚡ Iniciando configuración de Amplify...");
 
     if (!Amplify.isConfigured) {
-      print("🛠️ Cargando configuración desde amplify_outputs.json...");
       final String configString = await rootBundle.loadString('lib/amplify_outputs.json');
       final Map<String, dynamic> config = json.decode(configString);
 
-      print("🔌 Agregando plugin de DataStore...");
-      await Amplify.addPlugin(AmplifyDataStore(modelProvider: ModelProvider.instance)); // 👈 NUEVO
-
-      print("🔌 Agregando plugin de autenticación...");
+      await Amplify.addPlugin(AmplifyDataStore(modelProvider: ModelProvider.instance));
       await Amplify.addPlugin(AmplifyAuthCognito());
-
-      print("🔌 Agregando plugin de API (GraphQL / REST)...");
-      final apiPlugin = AmplifyAPI(
-        options: APIPluginOptions(
-          modelProvider: ModelProvider.instance,
-        ),
-      );
-      await Amplify.addPlugin(apiPlugin);
-
-      print("🔌 Agregando plugin de Storage (S3)...");
+      await Amplify.addPlugin(AmplifyAPI(options: APIPluginOptions(modelProvider: ModelProvider.instance)));
       await Amplify.addPlugin(AmplifyStorageS3());
 
-      print("⚙️ Configurando Amplify...");
       await Amplify.configure(jsonEncode(config));
-
       print("✅ AWS Amplify configurado correctamente.");
     } else {
       print("⚠️ AWS Amplify ya estaba configurado.");
@@ -57,22 +42,31 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureAmplify();
 
+  // 🔍 Verificar conectividad a internet (sin usar connectivity_plus)
+  bool hasInternet = true;
+  try {
+    final session = await Amplify.Auth.fetchAuthSession();
+    hasInternet = session.isSignedIn || true; // Solo verifica si responde sin lanzar excepción
+  } catch (e) {
+    hasInternet = false;
+  }
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel()), // Login y registro
-        ChangeNotifierProvider(create: (_) => UserViewModel()), // Info del usuario logueado
-        ChangeNotifierProvider(create: (_) => BooksViewModel()),       // Libros publicados 
-        ChangeNotifierProvider(create: (_) => UserLibraryViewModel()), // User Library
-
+        ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        ChangeNotifierProvider(create: (_) => UserViewModel()),
+        ChangeNotifierProvider(create: (_) => BooksViewModel()),
+        ChangeNotifierProvider(create: (_) => UserLibraryViewModel()),
       ],
-      child: const MyApp(),
+      child: MyApp(showNoInternetToast: !hasInternet),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool showNoInternetToast;
+  const MyApp({super.key, required this.showNoInternetToast});
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +74,22 @@ class MyApp extends StatelessWidget {
       title: 'Flutter AWS Amplify Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: SplashView(), // ⏳ Pantalla de carga que decide navegación
+      home: Builder(
+        builder: (context) {
+          if (showNoInternetToast) {
+            Future.delayed(Duration.zero, () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('❌ Verifica tu conexión a internet.'),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            });
+          }
+          return SplashView();
+        },
+      ),
     );
   }
 }
