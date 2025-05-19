@@ -5,14 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ca51bc1a-65ef-42d9-82f2-c408fbc7c70c" name="Changes" comment="Base">
-      <change afterPath="$PROJECT_DIR$/lib/amplify_outputs.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Flutter_Plugins.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Flutter_Plugins.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/viewmodels/auth_vm.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/viewmodels/auth_vm.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/views/home_view.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/views/home_view.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/views/login_view.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/views/login_view.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/views/register_view.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/views/register_view.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/views/splash_view.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/views/splash_view.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/views/user_profile_view.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/views/user_profile_view.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bookyo-backend" beforeDir="false" afterPath="$PROJECT_DIR$/bookyo-backend" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bookyo-backend/amplify/backend.ts" beforeDir="false" afterPath="$PROJECT_DIR$/bookyo-backend/amplify/backend.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bookyo-backend/amplify/data/resource.ts" beforeDir="false" afterPath="$PROJECT_DIR$/bookyo-backend/amplify/data/resource.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bookyo-backend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/bookyo-backend/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bookyo-backend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/bookyo-backend/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,8 +61,9 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "LOGIN/UI__details",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Jeronimo Vargas/OneDrive/Documentos/9 SEMESTRE/MOVILES/APPREPORTS/cake_wallet",
     "settings.editor.selected.configurable": "flutter.settings",
     "show.migrate.to.gradle.popup": "false"
   }
