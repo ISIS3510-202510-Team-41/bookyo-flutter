@@ -11,6 +11,14 @@ class RegisterResult {
   RegisterResult({required this.success, required this.needsConfirmation});
 }
 
+class LoginResult {
+  final bool success;
+  final String? errorType; // 'network', 'credentials', 'unknown'
+  final String? message;
+
+  LoginResult({required this.success, this.errorType, this.message});
+}
+
 class AuthViewModel with ChangeNotifier {
   bool isLoggedIn = false;
   String? userEmail;
@@ -105,7 +113,7 @@ class AuthViewModel with ChangeNotifier {
   }
 
   /// 🔹 Login de usuario
-  Future<bool> login(String email, String password) async {
+  Future<LoginResult> login(String email, String password) async {
     try {
       if (!Amplify.isConfigured) {
         await _ensureAmplifyConfigured();
@@ -128,14 +136,22 @@ class AuthViewModel with ChangeNotifier {
         await fetchUserProfile(); // ✅ Cargar automáticamente el perfil
         notifyListeners();
         print("✅ Usuario autenticado correctamente.");
-        return true;
+        return LoginResult(success: true);
       } else {
         print("⚠️ Usuario NO autenticado.");
-        return false;
+        return LoginResult(success: false, errorType: 'credentials', message: 'Credenciales incorrectas');
       }
+    } on AuthException catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('network') || msg.contains('host lookup')) {
+        print("❌ Error de red en login: $e");
+        return LoginResult(success: false, errorType: 'network', message: e.message);
+      }
+      print("❌ Error de autenticación en login: $e");
+      return LoginResult(success: false, errorType: 'credentials', message: e.message);
     } catch (e) {
-      print("❌ Error en login: $e");
-      return false;
+      print("❌ Error desconocido en login: $e");
+      return LoginResult(success: false, errorType: 'unknown', message: e.toString());
     }
   }
 

@@ -6,6 +6,14 @@ import '../../viewmodels/user_vm.dart';
 import '../home_view.dart';
 import 'register_view.dart';
 
+class LoginResult {
+  final bool success;
+  final String? errorType; // 'network', 'credentials', 'unknown'
+  final String? message;
+
+  LoginResult({required this.success, this.errorType, this.message});
+}
+
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
@@ -36,9 +44,9 @@ class _LoginViewState extends State<LoginView> {
     final password = passwordController.text.trim();
 
     try {
-      bool success = await authVM.login(email, password);
+      final result = await authVM.login(email, password);
 
-      if (success) {
+      if (result.success) {
         await userVM.fetchUser();
         final user = authVM.user;
 
@@ -55,29 +63,30 @@ class _LoginViewState extends State<LoginView> {
           MaterialPageRoute(builder: (_) => HomeView()),
         );
       } else {
+        String errorMsg;
+        if (result.errorType == 'network') {
+          errorMsg = "Login failed. Please check your internet connection.";
+        } else if (result.errorType == 'credentials') {
+          errorMsg = "Login failed. Incorrect email or password.";
+        } else {
+          errorMsg = "Unknown error: ${result.message}";
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Login failed.')),
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: result.errorType == 'network'
+                ? Colors.redAccent
+                : (result.errorType == 'credentials' ? Colors.orange : Colors.grey),
+          ),
         );
       }
     } catch (e) {
-      final errorMessage = e.toString().toLowerCase();
-
-      if (errorMessage.contains('network') || errorMessage.contains('host lookup')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("❌ Login failed. Please check your internet connection."),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("❌ Unknown error: ${e.toString()}"),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Unknown error: ${e.toString()}"),
+          backgroundColor: Colors.orange,
+        ),
+      );
       debugPrint("❌ Login error: $e");
     }
 

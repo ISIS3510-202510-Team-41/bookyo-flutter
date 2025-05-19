@@ -112,9 +112,9 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                               bool verified = await authVM.verifyEmail(widget.email, codeController.text);
 
                               if (verified) {
-                                bool loggedIn = await authVM.login(widget.email, widget.password);
+                                final loggedIn = await authVM.login(widget.email, widget.password);
 
-                                if (loggedIn) {
+                                if (loggedIn.success) {
                                   // 🔥 Ahora CREAR el perfil completo
                                   bool profileCreated = await authVM.createUserProfile(
                                     firstName: widget.firstName,  // 🔥 Necesitamos pasar estos datos
