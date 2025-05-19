@@ -44,11 +44,11 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
       final connected = status == ConnectivityResult.mobile || status == ConnectivityResult.wifi;
       if (!connected && _hasInternet) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("⚠️ Conexión perdida"), backgroundColor: Colors.red),
+            const SnackBar(content: Text("⚠️ Connection lost"), backgroundColor: Colors.red),
         );
       } else if (connected && !_hasInternet) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Conexión restablecida"), backgroundColor: Colors.green),
+            const SnackBar(content: Text("Connection restored"), backgroundColor: Colors.green),
         );
       }
       setState(() {
