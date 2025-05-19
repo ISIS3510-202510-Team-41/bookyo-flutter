@@ -150,6 +150,10 @@ class _OptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double imageHeight = 250;
+    if (title == "Publish Book") {
+      imageHeight = 120; // Más pequeño para Publish Book
+    }
     return GestureDetector(
       onTap: onTap,
       child: Card(
@@ -158,9 +162,9 @@ class _OptionCard extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              height: 250,
+              height: imageHeight,
               width: double.infinity,
-              color: Colors.grey[300],
+              color: Theme.of(context).scaffoldBackgroundColor,
               child: imageContent ?? const Icon(Icons.image, size: 80, color: Colors.black26),
             ),
             const SizedBox(height: 10),
@@ -189,90 +193,95 @@ class _BookCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CarouselSlider(
-      options: CarouselOptions(
-        height: 230,
-        autoPlay: true,
-        enlargeCenterPage: true,
-        viewportFraction: 0.45,
-      ),
-      items: books.map((bookItem) {
-        final book = bookItem.book;
-        final imageUrl = bookItem.imageUrl?.toString();
+    return Container(
+      color: Colors.transparent,
+      child: CarouselSlider(
+        options: CarouselOptions(
+          height: 230,
+          autoPlay: true,
+          enlargeCenterPage: true,
+          viewportFraction: 0.45,
+        ),
+        items: books.map((bookItem) {
+          final book = bookItem.book;
+          final imageUrl = bookItem.imageUrl?.toString();
 
-        return SizedBox(
-          width: 160,
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                  offset: Offset(2, 4),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 12,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.brown,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        bottomLeft: Radius.circular(12),
+          return SizedBox(
+            width: 160,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(2, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    imageUrl != null
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image, size: 60),
+                          ),
+                    // Overlay oscuro para el texto
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.7),
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      imageUrl != null
-                          ? Image.network(
-                              imageUrl,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            )
-                          : const Icon(Icons.image, size: 60),
-                      const SizedBox(height: 8),
-                      Text(
-                        book.title,
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                    // Título sobre la imagen
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 12,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text(
+                          book.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        book.author?.name ?? '',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 }
