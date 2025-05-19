@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_vm.dart';
 import 'verify_email_view.dart';
+import '../../services/connectivity_service.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -82,9 +83,7 @@ class _RegisterViewState extends State<RegisterView> {
     if (result.success) {
       if (result.needsConfirmation) {
         _showToast(context, "✅ Registration successful. Check your email to verify your account.");
-
         await Future.delayed(const Duration(seconds: 2));
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -104,7 +103,13 @@ class _RegisterViewState extends State<RegisterView> {
         Navigator.pop(context);
       }
     } else {
-      _showToast(context, "❌ Registration failed. Please try again.", isError: true);
+      if (result.errorType == 'network') {
+        _showToast(context, "❌ Registration failed. Please check your internet connection and try again.", isError: true);
+      } else if (result.errorType == 'credentials') {
+        _showToast(context, "❌ Registration failed: "+(result.message ?? "Invalid credentials."), isError: true);
+      } else {
+        _showToast(context, "❌ Registration failed. Please try again.", isError: true);
+      }
     }
 
     setState(() => isLoading = false);
@@ -153,7 +158,13 @@ class _RegisterViewState extends State<RegisterView> {
                   isLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
-                          onPressed: () => _handleRegister(authViewModel),
+                          onPressed: () async {
+                            if (!await ConnectivityService.hasInternet()) {
+                              _showToast(context, "No internet connection. Please try again.", isError: true);
+                              return;
+                            }
+                            _handleRegister(authViewModel);
+                          },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -3,12 +3,15 @@ import 'package:bookyo_flutter/models/User.dart';
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/connectivity_service.dart';
 
 class RegisterResult {
   final bool success;
   final bool needsConfirmation;
+  final String? errorType; // 'network', 'credentials', 'unknown'
+  final String? message;
 
-  RegisterResult({required this.success, required this.needsConfirmation});
+  RegisterResult({required this.success, required this.needsConfirmation, this.errorType, this.message});
 }
 
 class LoginResult {
@@ -80,10 +83,12 @@ class AuthViewModel with ChangeNotifier {
     }
   }
 
-
-
   /// 🔹 Registro de usuario
   Future<RegisterResult> register(String email, String password) async {
+    if (!await ConnectivityService.hasInternet()) {
+      print("❌ No internet connection for register.");
+      return RegisterResult(success: false, needsConfirmation: false, errorType: 'network', message: 'No internet connection.');
+    }
     try {
       await _ensureAmplifyConfigured();
       print("📝 Registrando usuario con email: $email");
@@ -105,10 +110,14 @@ class AuthViewModel with ChangeNotifier {
       print("❌ Error específico de autenticación:");
       print("🔎 Código: ${e.runtimeType}");
       print("🔎 Mensaje: ${e.message}");
-      return RegisterResult(success: false, needsConfirmation: false);
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('network') || msg.contains('host lookup')) {
+        return RegisterResult(success: false, needsConfirmation: false, errorType: 'network', message: e.message);
+      }
+      return RegisterResult(success: false, needsConfirmation: false, errorType: 'credentials', message: e.message);
     } catch (e) {
       print("❌ Error general en el registro: $e");
-      return RegisterResult(success: false, needsConfirmation: false);
+      return RegisterResult(success: false, needsConfirmation: false, errorType: 'unknown', message: e.toString());
     }
   }
 
@@ -121,7 +130,7 @@ class AuthViewModel with ChangeNotifier {
 
       AuthSession session = await Amplify.Auth.fetchAuthSession();
       if (session.isSignedIn) {
-        print("🔄 Un usuario ya está autenticado. Cerrando sesión...");
+        print("�� Un usuario ya está autenticado. Cerrando sesión...");
         await Amplify.Auth.signOut();
         await Future.delayed(Duration(seconds: 1));
       }
@@ -171,23 +180,31 @@ class AuthViewModel with ChangeNotifier {
   }
 
   /// 🔹 Verificar email con código
-  Future<bool> verifyEmail(String email, String code) async {
+  Future<LoginResult> verifyEmailWithResult(String email, String code) async {
+    if (!await ConnectivityService.hasInternet()) {
+      print("❌ No internet connection for verify.");
+      return LoginResult(success: false, errorType: 'network', message: 'No internet connection.');
+    }
     try {
       print("🔹 Verificando código para: $email");
-
       SignUpResult result = await Amplify.Auth.confirmSignUp(
         username: email,
         confirmationCode: code,
       );
-
       if (result.isSignUpComplete) {
         print("✅ Cuenta verificada correctamente.");
-        return true;
+        return LoginResult(success: true);
       }
-      return false;
+      return LoginResult(success: false, errorType: 'credentials', message: 'Verification failed.');
+    } on AuthException catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('network') || msg.contains('host lookup')) {
+        return LoginResult(success: false, errorType: 'network', message: e.message);
+      }
+      return LoginResult(success: false, errorType: 'credentials', message: e.message);
     } catch (e) {
       print("❌ Error en la verificación: $e");
-      return false;
+      return LoginResult(success: false, errorType: 'unknown', message: e.toString());
     }
   }
 
@@ -213,8 +230,19 @@ class AuthViewModel with ChangeNotifier {
   }) async {
     try {
       if (userEmail == null) {
-        print("❌ No email, no se puede crear el perfil");
+        print("❌ No email, cannot create profile");
         return false;
+      }
+
+      // 1. Check if user already exists
+      final existing = await Amplify.API.query(
+        request: ModelQueries.get(User.classType, UserModelIdentifier(email: userEmail!))
+      ).response;
+
+      if (existing.data != null) {
+        print("⚠️ User already exists in the database: "+existing.data!.email);
+        currentUser = existing.data;
+        return true;
       }
 
       final user = User(
@@ -229,16 +257,17 @@ class AuthViewModel with ChangeNotifier {
       final response = await Amplify.API.mutate(request: request).response;
 
       if (response.data != null) {
-        print("✅ Perfil de usuario guardado correctamente: ${response.data!.email}");
+        print("✅ User profile saved successfully: "+response.data!.email);
         currentUser = response.data;
         notifyListeners();
         return true;
       } else {
-        print("⚠️ Error guardando perfil de usuario: ${response.errors}");
+        print("⚠️ Error saving user profile: "+response.errors.toString());
         return false;
       }
-    } catch (e) {
-      print("❌ Error creando el perfil de usuario: $e");
+    } catch (e, st) {
+      print("❌ Error creating user profile: $e");
+      print("�� Stacktrace: $st");
       return false;
     }
   }
