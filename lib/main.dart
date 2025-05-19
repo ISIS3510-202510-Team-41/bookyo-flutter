@@ -1,18 +1,21 @@
-import 'package:amplify_datastore/amplify_datastore.dart';
-import 'package:bookyo_flutter/viewmodels/books_vm.dart';
-import 'package:bookyo_flutter/viewmodels/user_library_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_api/amplify_api.dart';
+import 'package:amplify_datastore/amplify_datastore.dart';
 import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 
+import 'package:hive_flutter/hive_flutter.dart'; 
+import 'models/cached_image.dart';               
+
 import 'models/ModelProvider.dart';
 import 'viewmodels/auth_vm.dart';
 import 'viewmodels/user_vm.dart';
+import 'viewmodels/books_vm.dart';
+import 'viewmodels/user_library_vm.dart';
 import 'views/splash_view.dart';
 
 Future<void> configureAmplify() async {
@@ -40,13 +43,19 @@ Future<void> configureAmplify() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 🐝 Inicializa Hive
+  await Hive.initFlutter();
+  Hive.registerAdapter(CachedImageAdapter());
+  await Hive.openBox<CachedImage>('cachedImages');
+
   await configureAmplify();
 
   // 🔍 Verificar conectividad a internet (sin usar connectivity_plus)
   bool hasInternet = true;
   try {
     final session = await Amplify.Auth.fetchAuthSession();
-    hasInternet = session.isSignedIn || true; // Solo verifica si responde sin lanzar excepción
+    hasInternet = session.isSignedIn || true;
   } catch (e) {
     hasInternet = false;
   }
