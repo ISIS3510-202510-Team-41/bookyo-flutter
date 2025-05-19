@@ -153,27 +153,37 @@ class _RegisterViewState extends State<RegisterView> {
                   _buildPasswordField(controller: passwordController, label: "Password", validator: _validatePassword),
                   _buildPasswordField(controller: confirmPasswordController, label: "Confirm Password", validator: _validateConfirmPassword),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
 
                   isLoading
                       ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                          onPressed: () async {
-                            if (!await ConnectivityService.hasInternet()) {
-                              _showToast(context, "No internet connection. Please try again.", isError: true);
-                              return;
-                            }
-                            _handleRegister(authViewModel);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            backgroundColor: const Color(0xFFB6EB7A),
-                            fixedSize: Size(MediaQuery.of(context).size.width / 2, 50),
-                          ),
-                          child: const Text(
-                            "Register",
-                            style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans'),
+                      : Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: 140,
+                              maxWidth: MediaQuery.of(context).size.width / 2,
+                            ),
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                if (!await ConnectivityService.hasInternet()) {
+                                  _showToast(context, "No internet connection. Please try again.", isError: true);
+                                  return;
+                                }
+                                _handleRegister(authViewModel);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                backgroundColor: const Color(0xFFB6EB7A),
+                              ),
+                              child: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  "Register",
+                                  style: TextStyle(fontSize: 18, color: Colors.black, fontFamily: 'Parkinsans'),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                   const SizedBox(height: 5),
