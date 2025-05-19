@@ -17,6 +17,15 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   int _selectedIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // 👉 Esto asegura que se carguen los libros al iniciar la app
+    Future.microtask(() {
+      Provider.of<BooksViewModel>(context, listen: false).fetchBooks();
+    });
+  }
+
   void _goToProfile() {
     Navigator.push(
       context,
@@ -51,18 +60,18 @@ class _HomeViewState extends State<HomeView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
-            onPressed: () => _onItemTapped(1), // Navega a SearchView
+            onPressed: () => _onItemTapped(1),
           ),
         ],
       ),
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          _HomeScreen(onTabSelected: _onItemTapped), // 0
-          const SearchView(),                        // 1
-          const PublishScreen(),                     // 2
-          const NotificationsScreen(),               // 3
-          const UserLibraryView(),                   // 4
+          _HomeScreen(onTabSelected: _onItemTapped),
+          const SearchView(),
+          const PublishScreen(),
+          const NotificationsScreen(),
+          const UserLibraryView(),
         ],
       ),
       bottomNavigationBar: Column(
@@ -100,19 +109,8 @@ class _HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> publishedBooks = [
-      {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"},
-      {"title": "1984", "author": "George Orwell"},
-      {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
-    ];
-
-    final List<Map<String, String>> books = publishedBooks.isNotEmpty
-        ? publishedBooks
-        : const [
-            {"title": "The Great Gatsby", "author": "F. Scott Fitzgerald"},
-            {"title": "1984", "author": "George Orwell"},
-            {"title": "To Kill a Mockingbird", "author": "Harper Lee"},
-          ];
+    final booksVM = Provider.of<BooksViewModel>(context);
+    final books = booksVM.booksWithImages;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height - kToolbarHeight - 100,
@@ -124,13 +122,13 @@ class _HomeScreen extends StatelessWidget {
             children: [
               _OptionCard(
                 title: "Browse Books",
-                onTap: () => onTabSelected(1), // Navega a búsqueda
+                onTap: () => onTabSelected(1),
                 imageContent: _BookCarousel(books: books),
               ),
               const SizedBox(height: 20),
               _OptionCard(
                 title: "Publish Book",
-                onTap: () => onTabSelected(2), // Navega a publicación
+                onTap: () => onTabSelected(2),
               ),
             ],
           ),
@@ -160,11 +158,10 @@ class _OptionCard extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              height: 150,
+              height: 250,
               width: double.infinity,
               color: Colors.grey[300],
-              child: imageContent ??
-                  const Icon(Icons.image, size: 80, color: Colors.black26),
+              child: imageContent ?? const Icon(Icons.image, size: 80, color: Colors.black26),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
@@ -184,9 +181,9 @@ class _OptionCard extends StatelessWidget {
 }
 
 // ----------------------------------------------
-// 🔹 Carrusel de libros
+// 🔹 Carrusel de libros con imágenes S3 o cache local
 class _BookCarousel extends StatelessWidget {
-  final List<Map<String, String>> books;
+  final List<BookWithImage> books;
 
   const _BookCarousel({Key? key, required this.books}) : super(key: key);
 
@@ -194,12 +191,15 @@ class _BookCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     return CarouselSlider(
       options: CarouselOptions(
-        height: 200,
+        height: 230,
         autoPlay: true,
         enlargeCenterPage: true,
         viewportFraction: 0.45,
       ),
-      items: books.map((book) {
+      items: books.map((bookItem) {
+        final book = bookItem.book;
+        final imageUrl = bookItem.imageUrl?.toString();
+
         return SizedBox(
           width: 160,
           child: Container(
@@ -237,10 +237,18 @@ class _BookCarousel extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      imageUrl != null
+                          ? Image.network(
+                              imageUrl,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            )
+                          : const Icon(Icons.image, size: 60),
+                      const SizedBox(height: 8),
                       Text(
-                        book["title"]!,
+                        book.title,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 14.5,
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
@@ -248,16 +256,14 @@ class _BookCarousel extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
-                        book["author"]!,
+                        book.author?.name ?? '',
                         style: const TextStyle(
                           fontSize: 13,
                           color: Colors.grey,
                         ),
                         textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
