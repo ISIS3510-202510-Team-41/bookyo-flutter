@@ -6,21 +6,24 @@ import 'package:provider/provider.dart';
 import '../viewmodels/publish_view_model.dart';
 import '../services/connectivity_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import '../models/Listing.dart';
 
 class PublishScreen extends StatelessWidget {
-  const PublishScreen({Key? key}) : super(key: key);
+  final Listing? listingToEdit;
+  const PublishScreen({Key? key, this.listingToEdit}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => PublishViewModel(),
-      child: const _PublishScreenBody(),
+      child: _PublishScreenBody(listingToEdit: listingToEdit),
     );
   }
 }
 
 class _PublishScreenBody extends StatefulWidget {
-  const _PublishScreenBody({Key? key}) : super(key: key);
+  final Listing? listingToEdit;
+  const _PublishScreenBody({Key? key, this.listingToEdit}) : super(key: key);
 
   @override
   State<_PublishScreenBody> createState() => _PublishScreenBodyState();
@@ -35,7 +38,16 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
   void initState() {
     super.initState();
     viewModel = Provider.of<PublishViewModel>(context, listen: false);
-    viewModel.loadDraft(); // ← Cargar el borrador local si existe
+    if (widget.listingToEdit != null) {
+      final book = widget.listingToEdit!.book;
+      viewModel.isbnController.text = book?.isbn ?? '';
+      viewModel.titleController.text = book?.title ?? '';
+      viewModel.authorController.text = book?.author?.name ?? '';
+      viewModel.priceController.text = widget.listingToEdit!.price.toString();
+      // Nota: No se prellena la imagen local, solo el path remoto
+    } else {
+      viewModel.loadDraft(); // ← Cargar el borrador local si existe
+    }
     _monitorConnectivity();
   }
 
@@ -178,7 +190,7 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
                   ),
                 ),
               ElevatedButton(
-                onPressed: viewModel.isLoading ? null : () => viewModel.publishBook(context),
+                onPressed: viewModel.isLoading ? null : () => viewModel.publishBook(context, listingToEdit: widget.listingToEdit),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,

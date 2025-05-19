@@ -1,3 +1,4 @@
+import 'package:amplify_api/amplify_api.dart';
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import '../models/ModelProvider.dart';
@@ -25,11 +26,13 @@ class UserLibraryViewModel extends ChangeNotifier {
       debugPrint("📧 Email autenticado: $email");
 
       // Cargar todos los listings
-      final allListings = await Amplify.DataStore.query(Listing.classType);
+      final request = ModelQueries.list(Listing.classType);
+      final response = await Amplify.API.query(request: request).response;
+      final allListings = (response.data?.items ?? []).whereType<Listing>().toList();
 
       // Filtrar por user.email localmente
       _userListings = allListings.where((listing) {
-        final user = listing.user;
+        final user = listing?.user;
         return user != null && user.email == email;
       }).toList();
 

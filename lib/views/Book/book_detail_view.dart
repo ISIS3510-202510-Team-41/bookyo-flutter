@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:bookyo_flutter/models/Listing.dart';
 import 'package:bookyo_flutter/models/Book.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:intl/intl.dart';
 
 class BookDetailView extends StatefulWidget {
   final Listing listing;
@@ -15,6 +17,8 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  String? imageUrl;
+  bool loadingImage = true;
 
   @override
   void initState() {
@@ -33,6 +37,31 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
     _controller.forward();
+
+    _loadImageUrl();
+  }
+
+  Future<void> _loadImageUrl() async {
+    final book = widget.listing.book;
+    if (book?.thumbnail != null && book!.thumbnail!.isNotEmpty) {
+      try {
+        final result = await Amplify.Storage.getUrl(path: StoragePath.fromString(book.thumbnail!)).result;
+        setState(() {
+          imageUrl = result.url.toString();
+          loadingImage = false;
+        });
+      } catch (e) {
+        setState(() {
+          imageUrl = null;
+          loadingImage = false;
+        });
+      }
+    } else {
+      setState(() {
+        imageUrl = null;
+        loadingImage = false;
+      });
+    }
   }
 
   @override
@@ -44,7 +73,6 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final Book book = widget.listing.book!;
-    final String? thumbnail = book.thumbnail;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -59,11 +87,17 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (thumbnail != null && thumbnail.isNotEmpty)
+                  if (loadingImage)
+                    const SizedBox(
+                      width: 160,
+                      height: 220,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (imageUrl != null && imageUrl!.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
-                        thumbnail,
+                        imageUrl!,
                         width: 160,
                         height: 220,
                         fit: BoxFit.cover,
@@ -86,7 +120,7 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "\$${widget.listing.price.toStringAsFixed(2)}",
+                    '\$ ${NumberFormat('#,##0', 'es_CO').format(widget.listing.price)}',
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
                   ),
                   const SizedBox(height: 8),

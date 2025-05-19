@@ -1,26 +1,32 @@
 import 'package:flutter/material.dart';
 import '../../models/Listing.dart';
+import '../../viewmodels/books_vm.dart';
 import '../../views/Book/book_detail_view.dart'; // 👈 Asegúrate de tener este import
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_api/amplify_api.dart';
+import '../../models/Author.dart';
+import 'package:intl/intl.dart';
 
 class ListingsTab extends StatelessWidget {
-  final List<Listing> listings;
+  final List<ListingWithImage> listingsWithImages;
 
-  const ListingsTab({Key? key, required this.listings}) : super(key: key);
+  const ListingsTab({Key? key, required this.listingsWithImages}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    if (listings.isEmpty) {
+    if (listingsWithImages.isEmpty) {
       return const Center(child: Text('No listings available yet.'));
     }
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: listings.length,
+      itemCount: listingsWithImages.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final listing = listings[index];
+        final item = listingsWithImages[index];
+        final listing = item.listing;
         if (listing.book == null) return const SizedBox.shrink();
-        return _BookListingCard(listing: listing);
+        return _BookListingCard(listing: listing, imageUrl: item.imageUrl);
       },
     );
   }
@@ -28,13 +34,15 @@ class ListingsTab extends StatelessWidget {
 
 class _BookListingCard extends StatelessWidget {
   final Listing listing;
+  final String? imageUrl;
 
-  const _BookListingCard({Key? key, required this.listing}) : super(key: key);
+  const _BookListingCard({Key? key, required this.listing, required this.imageUrl}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final book = listing.book!;
-    final imageUrl = book.thumbnail;
+    // DEBUG: Log para ver el valor del autor
+    debugPrint('LISTINGS CARD: book.title=${book.title}, author=${book.author}, authorName=${book.author?.name}');
 
     return Card(
       elevation: 3,
@@ -54,10 +62,14 @@ class _BookListingCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(book.author?.name ?? 'Unknown author'),
+            book.author?.name != null
+              ? Text(book.author!.name is String ? book.author!.name : book.author!.name.toString())
+              : AuthorNameFetcher(authorId: book.author?.id?.toString()),
             const SizedBox(height: 4),
-            Text('\$${listing.price.toStringAsFixed(2)}',
-                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500)),
+            Text(
+              '\$ ${NumberFormat('#,##0', 'es_CO').format(listing.price)}',
+              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
       ),
@@ -91,5 +103,56 @@ class _BookListingCard extends StatelessWidget {
       ),
       child: const Icon(Icons.book, size: 40, color: Colors.black38),
     );
+  }
+}
+
+// Widget para obtener el nombre del autor si no está presente
+class AuthorNameFetcher extends StatefulWidget {
+  final String? authorId;
+  const AuthorNameFetcher({Key? key, required this.authorId}) : super(key: key);
+
+  @override
+  State<AuthorNameFetcher> createState() => _AuthorNameFetcherState();
+}
+
+class _AuthorNameFetcherState extends State<AuthorNameFetcher> {
+  static final Map<String, String> _authorNameCache = {};
+  String? _authorName;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAuthorName();
+  }
+
+  Future<void> _fetchAuthorName() async {
+    if (widget.authorId == null) return;
+    if (_authorNameCache.containsKey(widget.authorId)) {
+      setState(() => _authorName = _authorNameCache[widget.authorId]);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final request = ModelQueries.get(Author.classType, AuthorModelIdentifier(id: widget.authorId!));
+      final response = await Amplify.API.query(request: request).response;
+      final author = response.data as Author?;
+      if (author != null) {
+        _authorNameCache[widget.authorId!] = author.name;
+        setState(() => _authorName = author.name);
+      } else {
+        setState(() => _authorName = 'Unknown author');
+      }
+    } catch (e) {
+      setState(() => _authorName = 'Unknown author');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Text('Cargando autor...', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey));
+    return Text(_authorName ?? 'Unknown author');
   }
 }
