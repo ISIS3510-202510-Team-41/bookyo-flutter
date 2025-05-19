@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/auth_vm.dart';
 import 'login_view.dart';
 import '../home_view.dart'; // ✅ Importa tu HomeView para navegar luego
+import '../../services/connectivity_service.dart';
 
 class VerifyEmailView extends StatefulWidget {
   final String email;
@@ -105,19 +106,21 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                       : ElevatedButton(
                           onPressed: () async {
                             if (_formKey.currentState!.validate()) {
+                              if (!await ConnectivityService.hasInternet()) {
+                                _showToast(context, "No internet connection. Please try again.", isError: true);
+                                return;
+                              }
                               setState(() => isLoading = true);
 
-                              final authVM = Provider.of<AuthViewModel>(context, listen: false);
+                              final verifyResult = await authViewModel.verifyEmailWithResult(widget.email, codeController.text);
 
-                              bool verified = await authVM.verifyEmail(widget.email, codeController.text);
-
-                              if (verified) {
-                                final loggedIn = await authVM.login(widget.email, widget.password);
+                              if (verifyResult.success) {
+                                final loggedIn = await authViewModel.login(widget.email, widget.password);
 
                                 if (loggedIn.success) {
-                                  // 🔥 Ahora CREAR el perfil completo
-                                  bool profileCreated = await authVM.createUserProfile(
-                                    firstName: widget.firstName,  // 🔥 Necesitamos pasar estos datos
+                                  // Create the full profile
+                                  bool profileCreated = await authViewModel.createUserProfile(
+                                    firstName: widget.firstName,
                                     lastName: widget.lastName,
                                     phone: widget.phone,
                                     address: widget.address,
@@ -142,16 +145,22 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                                   }
                                 } else {
                                   setState(() => isLoading = false);
-                                  _showToast(context, "⚠️ Verification done but login failed.", isError: true);
-                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginView()));
+                                  if (verifyResult.errorType == 'network') {
+                                    _showToast(context, "❌ No internet connection. Please try again.", isError: true);
+                                  } else {
+                                    _showToast(context, "❌ Incorrect or expired verification code.", isError: true);
+                                  }
                                 }
                               } else {
                                 setState(() => isLoading = false);
-                                _showToast(context, "❌ Incorrect or expired verification code.", isError: true);
+                                if (verifyResult.errorType == 'network') {
+                                  _showToast(context, "❌ No internet connection. Please try again.", isError: true);
+                                } else {
+                                  _showToast(context, "❌ Incorrect or expired verification code.", isError: true);
+                                }
                               }
                             }
-                          }
-,
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFB6EB7A),
                             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
