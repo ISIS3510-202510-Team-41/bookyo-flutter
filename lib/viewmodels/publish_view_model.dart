@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ModelProvider.dart';
+import '../models/cached_image.dart';
+import '../services/connectivity_service.dart';
 
 class PublishViewModel extends ChangeNotifier {
   final TextEditingController isbnController = TextEditingController();
@@ -15,15 +19,15 @@ class PublishViewModel extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
-  void selectImage() async {
+  Future<void> selectImage(ImageSource source) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked = await picker.pickImage(source: source);
     if (picked != null) {
       selectedImage = picked;
       debugPrint("✅ Image selected: ${picked.path}");
       notifyListeners();
     } else {
-      debugPrint("⚠️ Image selection canceled.");
+      debugPrint("⚠️ Image selection cancelled.");
     }
   }
 
@@ -34,26 +38,44 @@ class PublishViewModel extends ChangeNotifier {
     final priceText = priceController.text.trim();
 
     if ([isbn, title, authorName, priceText].any((e) => e.isEmpty) || selectedImage == null) {
-      errorMessage = "All fields are required.";
+      errorMessage = "All fields are required and an image must be uploaded.";
+      notifyListeners();
+      return;
+    }
+
+    if (isbn.length > 13) {
+      errorMessage = "ISBN must be at most 13 characters.";
+      notifyListeners();
+      return;
+    }
+
+    if (title.length > 50) {
+      errorMessage = "Title must be at most 50 characters.";
+      notifyListeners();
+      return;
+    }
+
+    if (authorName.length > 50) {
+      errorMessage = "Author name must be at most 50 characters.";
       notifyListeners();
       return;
     }
 
     final double? price = double.tryParse(priceText);
-    if (price == null || price <= 0) {
-      errorMessage = "Invalid price.";
+    if (price == null || price <= 0 || price > 100000000) {
+      errorMessage = "Price must be greater than 0 and less than 100,000,000.";
       notifyListeners();
       return;
     }
 
-    // 🔍 Check connection
-    try {
-      await Amplify.Auth.fetchAuthSession(); // this will throw if there's no connection
-    } catch (_) {
+    final hasInternet = await ConnectivityService.hasInternet();
+    if (!hasInternet) {
+      errorMessage = "No internet connection. Please try again later.";
+      notifyListeners();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("❌ Could not publish. Check your internet connection."),
-          backgroundColor: Colors.redAccent,
+          content: Text('❌ No internet connection.'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -67,26 +89,31 @@ class PublishViewModel extends ChangeNotifier {
       final attributes = await Amplify.Auth.fetchUserAttributes();
       final email = attributes.firstWhere((a) => a.userAttributeKey.key == 'email').value;
       final users = await Amplify.DataStore.query(User.classType, where: User.EMAIL.eq(email));
-      late final User user;
 
+      late final User user;
       if (users.isNotEmpty) {
         user = users.first;
-        debugPrint("👤 User found: ${user.email}");
+        debugPrint("👤 Usuario encontrado: ${user.email}");
       } else {
         user = User(email: email);
         await Amplify.DataStore.save(user);
-        debugPrint("✅ User created: ${user.email}");
+        debugPrint("✅ Usuario creado: ${user.email}");
       }
 
       final imageKey = "images/${const Uuid().v4()}.jpg";
       final imageFile = File(selectedImage!.path);
-      debugPrint("☁️ Uploading image with key: $imageKey");
+      debugPrint("☁️ Subiendo imagen con key: $imageKey");
 
       await Amplify.Storage.uploadFile(
         path: StoragePath.fromString(imageKey),
         localFile: AWSFile.fromPath(imageFile.path),
       );
-      debugPrint("✅ Image uploaded");
+      debugPrint("✅ Imagen subida a S3");
+
+      final imageBytes = await imageFile.readAsBytes();
+      final cacheBox = await Hive.openBox<CachedImage>('cached_images');
+      await cacheBox.put(imageKey, CachedImage(key: imageKey, bytes: imageBytes));
+      debugPrint("📦 Imagen guardada en caché local");
 
       final existingAuthors = await Amplify.DataStore.query(
         Author.classType,
@@ -96,11 +123,11 @@ class PublishViewModel extends ChangeNotifier {
       Author author;
       if (existingAuthors.isNotEmpty) {
         author = existingAuthors.first;
-        debugPrint("✅ Author found: ${author.id}");
+        debugPrint("✅ Autor encontrado: ${author.id}");
       } else {
         author = Author(name: authorName);
         await Amplify.DataStore.save(author);
-        debugPrint("✅ Author created: ${author.id}");
+        debugPrint("✅ Autor creado: ${author.id}");
       }
 
       final existingBooks = await Amplify.DataStore.query(
@@ -111,7 +138,7 @@ class PublishViewModel extends ChangeNotifier {
       Book book;
       if (existingBooks.isNotEmpty) {
         book = existingBooks.first;
-        debugPrint("⚠️ A book with this ISBN already exists: ${book.id}");
+        debugPrint("⚠️ Ya existe un libro con este ISBN: ${book.id}");
       } else {
         book = Book(
           title: title,
@@ -120,7 +147,7 @@ class PublishViewModel extends ChangeNotifier {
           author: author,
         );
         await Amplify.DataStore.save(book);
-        debugPrint("✅ Book created: ${book.id}");
+        debugPrint("✅ Libro creado: ${book.id}");
       }
 
       final listing = Listing(
@@ -130,20 +157,49 @@ class PublishViewModel extends ChangeNotifier {
         user: user,
       );
       await Amplify.DataStore.save(listing);
-      debugPrint("✅ Listing created with user");
+      debugPrint("✅ Listing creado con usuario");
 
+      await clearDraft();
       _reset();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("📚 Book published successfully")),
       );
     } catch (e, st) {
-      debugPrint("❌ Error publishing: $e");
+      debugPrint("❌ Error al publicar: $e");
       debugPrint("📄 Stacktrace:\n$st");
-      errorMessage = "Error publishing the book.";
+      errorMessage = "An error occurred while publishing the book.";
     } finally {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> saveDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('draft_isbn', isbnController.text);
+    await prefs.setString('draft_title', titleController.text);
+    await prefs.setString('draft_author', authorController.text);
+    await prefs.setString('draft_price', priceController.text);
+    debugPrint("📝 Borrador guardado");
+  }
+
+  Future<void> loadDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    isbnController.text = prefs.getString('draft_isbn') ?? '';
+    titleController.text = prefs.getString('draft_title') ?? '';
+    authorController.text = prefs.getString('draft_author') ?? '';
+    priceController.text = prefs.getString('draft_price') ?? '';
+    debugPrint("📂 Borrador cargado");
+    notifyListeners();
+  }
+
+  Future<void> clearDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('draft_isbn');
+    await prefs.remove('draft_title');
+    await prefs.remove('draft_author');
+    await prefs.remove('draft_price');
+    debugPrint("🧹 Borrador limpiado");
   }
 
   void _reset() {
