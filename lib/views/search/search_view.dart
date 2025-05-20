@@ -64,7 +64,7 @@ class _SearchViewState extends State<SearchView> with SingleTickerProviderStateM
           child: TabBarView(
             controller: _tabController,
             children: [
-              ListingsTab(listings: booksVM.publishedListings),
+              ListingsTab(listingsWithImages: booksVM.publishedListingsWithImages),
               BooksTab(books: booksVM.allBooks),
             ],
           ),

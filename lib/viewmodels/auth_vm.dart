@@ -301,11 +301,16 @@ class AuthViewModel with ChangeNotifier {
         print("⚠️ No existe perfil en base de datos, creando usuario básico...");
 
         final user = User(email: userEmail!);
-        await Amplify.DataStore.save(user);
-
-        currentUser = user;
-        notifyListeners();
-        return currentUser;
+        final createRequest = ModelMutations.create(user);
+        final createResponse = await Amplify.API.mutate(request: createRequest).response;
+        if (createResponse.data != null) {
+          currentUser = createResponse.data;
+          notifyListeners();
+          return currentUser;
+        } else {
+          print("❌ Error creating user profile in fallback: "+createResponse.errors.toString());
+          return null;
+        }
       }
     } catch (e) {
       print("❌ Error fetching or creating user profile: $e");

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
 import 'package:amplify_api/amplify_api.dart';
-import 'package:amplify_datastore/amplify_datastore.dart';
 import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
@@ -18,6 +17,8 @@ import 'viewmodels/books_vm.dart';
 import 'viewmodels/user_library_vm.dart';
 import 'views/splash_view.dart';
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 Future<void> configureAmplify() async {
   try {
     print("⚡ Iniciando configuración de Amplify...");
@@ -26,7 +27,6 @@ Future<void> configureAmplify() async {
       final String configString = await rootBundle.loadString('lib/amplify_outputs.json');
       final Map<String, dynamic> config = json.decode(configString);
 
-      await Amplify.addPlugin(AmplifyDataStore(modelProvider: ModelProvider.instance));
       await Amplify.addPlugin(AmplifyAuthCognito());
       await Amplify.addPlugin(AmplifyAPI(options: APIPluginOptions(modelProvider: ModelProvider.instance)));
       await Amplify.addPlugin(AmplifyStorageS3());
@@ -83,6 +83,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter AWS Amplify Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue),
+      navigatorObservers: [routeObserver],
       home: Builder(
         builder: (context) {
           if (showNoInternetToast) {

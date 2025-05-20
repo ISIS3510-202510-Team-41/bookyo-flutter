@@ -8,6 +8,10 @@ import 'notifications_screen.dart';
 import 'user_profile_view.dart';
 import 'search/search_view.dart';
 import 'user_library/user_library_view.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_api/amplify_api.dart';
+import '../models/Author.dart';
+import 'package:intl/intl.dart';
 
 class HomeView extends StatefulWidget {
   @override
@@ -20,9 +24,11 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
-    // 👉 Esto asegura que se carguen los libros al iniciar la app
+    // 👉 Esto asegura que se carguen los libros y listings al iniciar la app
     Future.microtask(() {
-      Provider.of<BooksViewModel>(context, listen: false).fetchBooks();
+      final booksVM = Provider.of<BooksViewModel>(context, listen: false);
+      booksVM.fetchBooks();
+      booksVM.fetchPublishedListings();
     });
   }
 
@@ -41,7 +47,7 @@ class _HomeViewState extends State<HomeView> {
       booksVM.fetchBooks();
       booksVM.fetchPublishedListings();
     } else if (index == 4) {
-      userLibraryVM.loadUserListings();
+      booksVM.fetchUserListings();
     }
 
     setState(() => _selectedIndex = index);
@@ -110,7 +116,7 @@ class _HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final booksVM = Provider.of<BooksViewModel>(context);
-    final books = booksVM.booksWithImages;
+    final listings = booksVM.publishedListingsWithImages;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height - kToolbarHeight - 100,
@@ -123,7 +129,7 @@ class _HomeScreen extends StatelessWidget {
               _OptionCard(
                 title: "Browse Books",
                 onTap: () => onTabSelected(1),
-                imageContent: _BookCarousel(books: books),
+                imageContent: _ListingCarousel(listings: listings),
               ),
               const SizedBox(height: 20),
               _OptionCard(
@@ -185,11 +191,11 @@ class _OptionCard extends StatelessWidget {
 }
 
 // ----------------------------------------------
-// 🔹 Carrusel de libros con imágenes S3 o cache local
-class _BookCarousel extends StatelessWidget {
-  final List<BookWithImage> books;
+// 🔹 Carrusel de listings igual que la tarjeta de Listing
+class _ListingCarousel extends StatelessWidget {
+  final List<ListingWithImage> listings;
 
-  const _BookCarousel({Key? key, required this.books}) : super(key: key);
+  const _ListingCarousel({Key? key, required this.listings}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -200,88 +206,127 @@ class _BookCarousel extends StatelessWidget {
           height: 230,
           autoPlay: true,
           enlargeCenterPage: true,
-          viewportFraction: 0.45,
+          viewportFraction: 0.55,
         ),
-        items: books.map((bookItem) {
-          final book = bookItem.book;
-          final imageUrl = bookItem.imageUrl?.toString();
-
-          return SizedBox(
-            width: 160,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 6,
-                    offset: Offset(2, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    imageUrl != null
-                        ? Image.network(
-                            imageUrl,
+        items: listings
+            .where((item) {
+              final url = item.imageUrl ?? '';
+              return url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'));
+            })
+            .map((item) {
+              final listing = item.listing;
+              final book = listing.book;
+              final imageUrl = item.imageUrl;
+              if (book == null) return const SizedBox.shrink();
+              return SizedBox(
+                width: 180,
+                child: Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                          child: Image.network(
+                            imageUrl!,
                             fit: BoxFit.cover,
-                          )
-                        : Container(
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image, size: 60),
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.book, size: 40, color: Colors.black38),
+                            ),
                           ),
-                    // Overlay oscuro para el texto
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.7),
-                            Colors.transparent,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              book.title,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            book.author?.name != null
+                              ? Text(
+                                  // ignore: unnecessary_type_check
+                                  book.author!.name is String ? book.author!.name : book.author!.name.toString(),
+                                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              : AuthorNameFetcher(
+                                  authorId: book.author?.id?.toString(),
+                                ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '\$ ${NumberFormat('#,##0', 'es_CO').format(listing.price)}',
+                              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500, fontSize: 14),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                    // Título sobre la imagen
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 12,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(
-                          book.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black54,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
       ),
     );
+  }
+}
+
+// Widget para obtener el nombre del autor si no está presente
+class AuthorNameFetcher extends StatefulWidget {
+  final String? authorId;
+  const AuthorNameFetcher({Key? key, required this.authorId}) : super(key: key);
+
+  @override
+  State<AuthorNameFetcher> createState() => _AuthorNameFetcherState();
+}
+
+class _AuthorNameFetcherState extends State<AuthorNameFetcher> {
+  static final Map<String, String> _authorNameCache = {};
+  String? _authorName;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAuthorName();
+  }
+
+  Future<void> _fetchAuthorName() async {
+    if (widget.authorId == null) return;
+    if (_authorNameCache.containsKey(widget.authorId)) {
+      setState(() => _authorName = _authorNameCache[widget.authorId]);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final request = ModelQueries.get(Author.classType, AuthorModelIdentifier(id: widget.authorId!));
+      final response = await Amplify.API.query(request: request).response;
+      final author = response.data as Author?;
+      if (author != null) {
+        _authorNameCache[widget.authorId!] = author.name;
+        setState(() => _authorName = author.name);
+      } else {
+        setState(() => _authorName = 'Unknown author');
+      }
+    } catch (e) {
+      setState(() => _authorName = 'Unknown author');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Text('Cargando autor...', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey));
+    return Text(_authorName ?? 'Unknown author', style: const TextStyle(fontSize: 13, color: Colors.black54), maxLines: 1, overflow: TextOverflow.ellipsis);
   }
 }

@@ -3,6 +3,12 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/user_library_vm.dart';
 import '../../models/Listing.dart';
 import '../../views/Book/userbook_detail_view.dart';
+import '../../viewmodels/books_vm.dart';
+import '../../main.dart'; // Importa el routeObserver
+import 'package:amplify_api/amplify_api.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import '../../models/Author.dart';
+import 'package:intl/intl.dart';
 
 class UserLibraryView extends StatefulWidget {
   const UserLibraryView({Key? key}) : super(key: key);
@@ -11,52 +17,79 @@ class UserLibraryView extends StatefulWidget {
   State<UserLibraryView> createState() => _UserLibraryViewState();
 }
 
-class _UserLibraryViewState extends State<UserLibraryView> {
+class _UserLibraryViewState extends State<UserLibraryView> with RouteAware {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() =>
-        context.read<UserLibraryViewModel>().loadUserListings());
+    Future.microtask(() {
+      context.read<BooksViewModel>().fetchUserListings();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Se llama cuando regresas a esta pantalla
+    context.read<BooksViewModel>().fetchUserListings();
+  }
+
+  @override
+  void didPush() {
+    // Se llama cuando la pantalla se muestra por primera vez o tras un push
+    context.read<BooksViewModel>().fetchUserListings();
   }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<UserLibraryViewModel>();
+    final booksVM = context.watch<BooksViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("My Library")),
-      body: vm.isLoading
+      appBar: AppBar(
+        title: const Text("My Library"),
+        automaticallyImplyLeading: false,
+      ),
+      body: booksVM.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : vm.errorMessage != null
-              ? Center(
-                  child: Text(vm.errorMessage!,
-                      style: const TextStyle(color: Colors.red)))
-              : vm.userListings.isEmpty
-                  ? const Center(child: Text('You have not listed any books yet.'))
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: vm.userListings.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final listing = vm.userListings[index];
-                        final book = listing.book;
-                        if (book == null) return const SizedBox.shrink();
-                        return _BookListingCard(listing: listing);
-                      },
-                    ),
+          : booksVM.userListingsWithImages.isEmpty
+              ? const Center(child: Text('You have not listed any books yet.'))
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: booksVM.userListingsWithImages.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = booksVM.userListingsWithImages[index];
+                    final listing = item.listing;
+                    final book = listing.book!;
+                    if (book == null) return const SizedBox.shrink();
+                    // DEBUG: Log para ver el valor del autor
+                    debugPrint('USER LIBRARY CARD: book.title=${book.title}, author=${book.author}, authorName=${book.author?.name}');
+                    return _BookListingCard(listing: listing, imageUrl: item.imageUrl);
+                  },
+                ),
     );
   }
 }
 
 class _BookListingCard extends StatelessWidget {
   final Listing listing;
+  final String? imageUrl;
 
-  const _BookListingCard({Key? key, required this.listing}) : super(key: key);
+  const _BookListingCard({Key? key, required this.listing, required this.imageUrl}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final book = listing.book!;
-    final imageUrl = book.thumbnail;
 
     return GestureDetector(
       onTap: () async {
@@ -68,14 +101,14 @@ class _BookListingCard extends StatelessWidget {
         );
 
         if (result == 'deleted' && context.mounted) {
-          await context.read<UserLibraryViewModel>().loadUserListings();
+          await context.read<BooksViewModel>().fetchUserListings();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Listing successfully deleted")),
           );
         }
       },
       child: Card(
-        elevation: 1,
+        elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(
           contentPadding: const EdgeInsets.all(12),
@@ -84,10 +117,13 @@ class _BookListingCard extends StatelessWidget {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(book.author?.name ?? 'Unknown author'),
+              book.author?.name != null
+                // ignore: unnecessary_type_check
+                ? Text(book.author!.name is String ? book.author!.name : book.author!.name.toString())
+                : AuthorNameFetcher(authorId: book.author?.id?.toString()),
               const SizedBox(height: 4),
               Text(
-                '\$${listing.price.toStringAsFixed(2)}',
+                '\$ ${NumberFormat('#,##0', 'es_CO').format(listing.price)}',
                 style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w500),
               ),
             ],
@@ -124,5 +160,56 @@ class _BookListingCard extends StatelessWidget {
       ),
       child: const Icon(Icons.book, size: 40, color: Colors.black38),
     );
+  }
+}
+
+// Widget para obtener el nombre del autor si no está presente
+class AuthorNameFetcher extends StatefulWidget {
+  final String? authorId;
+  const AuthorNameFetcher({Key? key, required this.authorId}) : super(key: key);
+
+  @override
+  State<AuthorNameFetcher> createState() => _AuthorNameFetcherState();
+}
+
+class _AuthorNameFetcherState extends State<AuthorNameFetcher> {
+  static final Map<String, String> _authorNameCache = {};
+  String? _authorName;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAuthorName();
+  }
+
+  Future<void> _fetchAuthorName() async {
+    if (widget.authorId == null) return;
+    if (_authorNameCache.containsKey(widget.authorId)) {
+      setState(() => _authorName = _authorNameCache[widget.authorId]);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final request = ModelQueries.get(Author.classType, AuthorModelIdentifier(id: widget.authorId!));
+      final response = await Amplify.API.query(request: request).response;
+      final author = response.data as Author?;
+      if (author != null) {
+        _authorNameCache[widget.authorId!] = author.name;
+        setState(() => _authorName = author.name);
+      } else {
+        setState(() => _authorName = 'Unknown author');
+      }
+    } catch (e) {
+      setState(() => _authorName = 'Unknown author');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Text('Cargando autor...', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey));
+    return Text(_authorName ?? 'Unknown author');
   }
 }
