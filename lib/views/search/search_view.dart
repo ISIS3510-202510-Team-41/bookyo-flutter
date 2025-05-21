@@ -37,39 +37,26 @@ class _SearchViewState extends State<SearchView> with SingleTickerProviderStateM
       );
     }
 
-    return Column(
-      children: [
-        const SizedBox(height: 12),
-        TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              child: Text(
-          '🛍️ Listings',
-          style: TextStyle(fontSize: 16), // Increased font size
-              ),
-            ),
-            Tab(
-              child: Text(
-          '📚 Books',
-          style: TextStyle(fontSize: 16), // Increased font size
-              ),
-            ),
-          ],
-          labelColor: Colors.blue,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.blue,
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              ListingsTab(listingsWithImages: booksVM.publishedListingsWithImages),
-              BooksTab(books: booksVM.allBooks),
+    return DefaultTabController(
+      length: 1,
+      child: Column(
+        children: [
+          TabBar(
+            tabs: [
+              // Tab(text: 'Books'), // ← Comentado provisionalmente
+              Tab(text: 'Listings'),
             ],
           ),
-        ),
-      ],
+          Expanded(
+            child: TabBarView(
+              children: [
+                // BooksTab(books: allBooks), // ← Comentado provisionalmente
+                ListingsTab(listingsWithImages: booksVM.publishedListingsWithImages),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
