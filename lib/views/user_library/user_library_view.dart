@@ -21,7 +21,7 @@ class _UserLibraryViewState extends State<UserLibraryView> with RouteAware {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BooksViewModel>().fetchUserListings();
     });
   }
@@ -40,14 +40,20 @@ class _UserLibraryViewState extends State<UserLibraryView> with RouteAware {
 
   @override
   void didPopNext() {
-    // Se llama cuando regresas a esta pantalla
-    context.read<BooksViewModel>().fetchUserListings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<BooksViewModel>().fetchUserListings();
+      }
+    });
   }
 
   @override
   void didPush() {
-    // Se llama cuando la pantalla se muestra por primera vez o tras un push
-    context.read<BooksViewModel>().fetchUserListings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<BooksViewModel>().fetchUserListings();
+      }
+    });
   }
 
   @override
