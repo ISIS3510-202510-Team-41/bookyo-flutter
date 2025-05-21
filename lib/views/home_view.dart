@@ -25,7 +25,7 @@ class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     // 👉 Esto asegura que se carguen los libros y listings al iniciar la app
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       final booksVM = Provider.of<BooksViewModel>(context, listen: false);
       booksVM.fetchBooks();
       booksVM.fetchPublishedListings();
