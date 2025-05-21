@@ -24,7 +24,12 @@ class NotificationsBody extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Notifications")),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        title: const Text("Notifications", style: TextStyle(color: Colors.black)),
+        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 0.5,
+      ),
       body: Builder(
         builder: (context) {
           if (viewModel.isLoading) {

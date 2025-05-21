@@ -64,8 +64,11 @@ class _UserLibraryViewState extends State<UserLibraryView> with RouteAware {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("My Library"),
+        backgroundColor: Colors.white,
+        title: const Text("My Library", style: TextStyle(color: Colors.black)),
         automaticallyImplyLeading: false,
+        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 0.5,
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -57,18 +57,21 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.person),
           onPressed: _goToProfile,
         ),
-        title: const Text("Bookyo"),
+        title: const Text("Bookyo", style: TextStyle(color: Colors.black)),
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
             onPressed: () => _onItemTapped(1),
           ),
         ],
+        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 0.5,
       ),
       body: IndexedStack(
         index: _selectedIndex,
@@ -80,27 +83,31 @@ class _HomeViewState extends State<HomeView> {
           const UserLibraryView(),
         ],
       ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Divider(color: Colors.grey),
-          BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: const Color(0xFFDB995A),
-            unselectedItemColor: Colors.grey,
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-              BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
-              BottomNavigationBarItem(icon: Icon(Icons.add_box), label: ''),
-              BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
-              BottomNavigationBarItem(icon: Icon(Icons.menu), label: ''),
-            ],
-          ),
-        ],
+      bottomNavigationBar: Container(
+        color: Colors.white,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Divider(color: Colors.grey, height: 1),
+            BottomNavigationBar(
+              backgroundColor: Colors.white,
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: const Color(0xFFDB995A),
+              unselectedItemColor: Colors.grey,
+              showSelectedLabels: false,
+              showUnselectedLabels: false,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
+                BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
+                BottomNavigationBarItem(icon: Icon(Icons.add_box), label: ''),
+                BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ''),
+                BottomNavigationBarItem(icon: Icon(Icons.menu), label: ''),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -116,24 +123,27 @@ class _HomeScreen extends StatelessWidget {
     final listings = context.select<BooksViewModel, List<ListingWithImage>>((vm) => vm.publishedListingsWithImages);
     return SizedBox(
       height: MediaQuery.of(context).size.height - kToolbarHeight - 100,
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _OptionCard(
-                title: "Browse Books",
-                onTap: () => _onItemTapped(context, 1),
-                imageContent: _ListingCarousel(listings: listings),
-              ),
-              const SizedBox(height: 20),
-              _OptionCard(
-                title: "Publish Book",
-                onTap: () => _onItemTapped(context, 2),
-                imageContent: const Icon(Icons.local_library, size: 80, color: Colors.blueAccent),
-              ),
-            ],
+      child: Container(
+        color: Colors.white,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _OptionCard(
+                  title: "Browse Books",
+                  onTap: () => _onItemTapped(context, 1),
+                  imageContent: _ListingCarousel(listings: listings),
+                ),
+                const SizedBox(height: 20),
+                _OptionCard(
+                  title: "Publish Book",
+                  onTap: () => _onItemTapped(context, 2),
+                  imageContent: const Icon(Icons.local_library, size: 80, color: Colors.blueAccent),
+                ),
+              ],
+            ),
           ),
         ),
       ),

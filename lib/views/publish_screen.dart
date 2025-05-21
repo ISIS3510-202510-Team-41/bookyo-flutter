@@ -138,7 +138,12 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Publish")),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        title: const Text("Publish", style: TextStyle(color: Colors.black)),
+        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 0.5,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
