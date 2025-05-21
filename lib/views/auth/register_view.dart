@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../viewmodels/auth_vm.dart';
 import 'verify_email_view.dart';
 import '../../services/connectivity_service.dart';
+import 'dart:async';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -24,6 +25,7 @@ class _RegisterViewState extends State<RegisterView> {
 
   bool isLoading = false;
   bool _obscurePassword = true;
+  Timer? _debounce;
 
   @override
   void dispose() {
@@ -34,7 +36,15 @@ class _RegisterViewState extends State<RegisterView> {
     addressController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onFieldChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      setState(() {}); // Solo para validación visual
+    });
   }
 
   String? _validateEmail(String? value) {
@@ -216,6 +226,7 @@ class _RegisterViewState extends State<RegisterView> {
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
+        onChanged: _onFieldChanged,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.black54, fontFamily: 'Parkinsans'),

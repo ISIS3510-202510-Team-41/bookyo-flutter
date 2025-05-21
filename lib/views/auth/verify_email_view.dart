@@ -4,6 +4,7 @@ import '../../viewmodels/auth_vm.dart';
 import 'login_view.dart';
 import '../home_view.dart'; // ✅ Importa tu HomeView para navegar luego
 import '../../services/connectivity_service.dart';
+import 'dart:async';
 
 class VerifyEmailView extends StatefulWidget {
   final String email;
@@ -30,11 +31,20 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController codeController = TextEditingController();
   bool isLoading = false;
+  Timer? _debounce;
 
   @override
   void dispose() {
     codeController.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onCodeChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      setState(() {});
+    });
   }
 
   /// 🔹 Show Toast message
@@ -86,6 +96,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                   // 🔢 Verification Code Field
                   TextFormField(
                     controller: codeController,
+                    onChanged: _onCodeChanged,
                     decoration: InputDecoration(
                       labelText: "Verification Code",
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),

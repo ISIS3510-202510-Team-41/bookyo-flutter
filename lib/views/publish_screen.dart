@@ -33,6 +33,7 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
   late PublishViewModel viewModel;
   StreamSubscription? _connectivitySub;
   bool _hasInternet = true;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -72,7 +73,15 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onFieldChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      setState(() {}); // Solo para validación visual
+    });
   }
 
   void _showImageSourceDialog(BuildContext context) {
@@ -141,7 +150,7 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
               TextField(
                 controller: viewModel.isbnController,
                 maxLength: 13,
-                onChanged: (_) => viewModel.saveDraft(),
+                onChanged: _onFieldChanged,
                 decoration: const InputDecoration(
                   labelText: "ISBN",
                   border: OutlineInputBorder(),
@@ -152,7 +161,7 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
               TextField(
                 controller: viewModel.titleController,
                 maxLength: 50,
-                onChanged: (_) => viewModel.saveDraft(),
+                onChanged: _onFieldChanged,
                 decoration: const InputDecoration(
                   labelText: "Title",
                   border: OutlineInputBorder(),
@@ -163,7 +172,7 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
               TextField(
                 controller: viewModel.authorController,
                 maxLength: 50,
-                onChanged: (_) => viewModel.saveDraft(),
+                onChanged: _onFieldChanged,
                 decoration: const InputDecoration(
                   labelText: "Author",
                   border: OutlineInputBorder(),
@@ -174,7 +183,7 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
               TextField(
                 controller: viewModel.priceController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (_) => viewModel.saveDraft(),
+                onChanged: _onFieldChanged,
                 decoration: const InputDecoration(
                   labelText: "Price",
                   border: OutlineInputBorder(),
