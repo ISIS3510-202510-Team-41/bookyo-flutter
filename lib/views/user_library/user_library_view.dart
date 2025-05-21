@@ -58,31 +58,41 @@ class _UserLibraryViewState extends State<UserLibraryView> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final booksVM = context.watch<BooksViewModel>();
+    final isLoading = context.select<BooksViewModel, bool>((vm) => vm.isLoading);
+    final userListingsWithImages = context.select<BooksViewModel, List<ListingWithImage>>((vm) => vm.userListingsWithImages);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Library"),
         automaticallyImplyLeading: false,
       ),
-      body: booksVM.isLoading
+      body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : booksVM.userListingsWithImages.isEmpty
+          : userListingsWithImages.isEmpty
               ? const Center(child: Text('You have not listed any books yet.'))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: booksVM.userListingsWithImages.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = booksVM.userListingsWithImages[index];
-                    final listing = item.listing;
-                    final book = listing.book!;
-                    if (book == null) return const SizedBox.shrink();
-                    // DEBUG: Log para ver el valor del autor
-                    debugPrint('USER LIBRARY CARD: book.title=${book.title}, author=${book.author}, authorName=${book.author?.name}');
-                    return _BookListingCard(listing: listing, imageUrl: item.imageUrl);
-                  },
-                ),
+              : _UserListingsList(userListingsWithImages: userListingsWithImages),
+    );
+  }
+}
+
+class _UserListingsList extends StatelessWidget {
+  final List<ListingWithImage> userListingsWithImages;
+  const _UserListingsList({Key? key, required this.userListingsWithImages}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: userListingsWithImages.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final item = userListingsWithImages[index];
+        final listing = item.listing;
+        final book = listing.book!;
+        if (book == null) return const SizedBox.shrink();
+        debugPrint('USER LIBRARY CARD: book.title=[200m${book.title}[0m, author=[200m${book.author}[0m, authorName=[200m${book.author?.name}[0m');
+        return _BookListingCard(listing: listing, imageUrl: item.imageUrl);
+      },
     );
   }
 }
