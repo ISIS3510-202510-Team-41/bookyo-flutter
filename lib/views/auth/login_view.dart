@@ -5,6 +5,7 @@ import '../../viewmodels/auth_vm.dart';
 import '../../viewmodels/user_vm.dart';
 import '../home_view.dart';
 import 'register_view.dart';
+import 'dart:async';
 
 class LoginResult {
   final bool success;
@@ -26,12 +27,28 @@ class _LoginViewState extends State<LoginView> {
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
   bool _obscurePassword = true;
+  Timer? _debounce;
 
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onEmailChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      setState(() {}); // Solo para actualizar si hay validación visual
+    });
+  }
+
+  void _onPasswordChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      setState(() {});
+    });
   }
 
   Future<void> _handleLogin() async {
@@ -95,6 +112,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoadingVM = context.select<AuthViewModel, bool>((vm) => vm.isLoggedIn);
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -117,6 +135,7 @@ class _LoginViewState extends State<LoginView> {
               const SizedBox(height: 30),
               TextField(
                 controller: emailController,
+                onChanged: _onEmailChanged,
                 decoration: InputDecoration(
                   labelText: "Email",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
@@ -126,6 +145,7 @@ class _LoginViewState extends State<LoginView> {
               const SizedBox(height: 16),
               TextField(
                 controller: passwordController,
+                onChanged: _onPasswordChanged,
                 decoration: InputDecoration(
                   labelText: "Password",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),

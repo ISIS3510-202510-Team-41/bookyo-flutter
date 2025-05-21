@@ -87,47 +87,9 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (loadingImage)
-                    const SizedBox(
-                      width: 160,
-                      height: 220,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (imageUrl != null && imageUrl!.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl!,
-                        width: 160,
-                        height: 220,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 100),
-                      ),
-                    )
-                  else
-                    const Icon(Icons.book, size: 100, color: Colors.grey),
-
+                  _BookImageSection(loadingImage: loadingImage, imageUrl: imageUrl),
                   const SizedBox(height: 24),
-                  Text(
-                    book.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "by ${book.author?.name ?? "Unknown author"}",
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '\$ ${NumberFormat('#,##0', 'es_CO').format(widget.listing.price)}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "ISBN: ${book.isbn}",
-                    style: const TextStyle(fontSize: 14, color: Colors.black87),
-                  ),
+                  _BookDetailsSection(book: book, listing: widget.listing),
                   const SizedBox(height: 30),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -169,6 +131,68 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
           ),
         ),
       ),
+    );
+  }
+}
+
+class _BookImageSection extends StatelessWidget {
+  final bool loadingImage;
+  final String? imageUrl;
+  const _BookImageSection({Key? key, required this.loadingImage, required this.imageUrl}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    if (loadingImage) {
+      return const SizedBox(
+        width: 160,
+        height: 220,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          imageUrl!,
+          width: 160,
+          height: 220,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 100),
+        ),
+      );
+    } else {
+      return const Icon(Icons.book, size: 100, color: Colors.grey);
+    }
+  }
+}
+
+class _BookDetailsSection extends StatelessWidget {
+  final Book book;
+  final Listing listing;
+  const _BookDetailsSection({Key? key, required this.book, required this.listing}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          book.title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "by ${book.author?.name ?? "Unknown author"}",
+          style: const TextStyle(fontSize: 16, color: Colors.black54),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '\$ ${NumberFormat('#,##0', 'es_CO').format(listing.price)}',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "ISBN: ${book.isbn}",
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+      ],
     );
   }
 }

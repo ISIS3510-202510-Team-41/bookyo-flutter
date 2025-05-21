@@ -73,7 +73,7 @@ class _HomeViewState extends State<HomeView> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          _HomeScreen(onTabSelected: _onItemTapped),
+          const _HomeScreen(),
           const SearchView(),
           const PublishScreen(),
           const NotificationsScreen(),
@@ -109,15 +109,11 @@ class _HomeViewState extends State<HomeView> {
 // ----------------------------------------------
 // 🔹 Pantalla principal (Home)
 class _HomeScreen extends StatelessWidget {
-  final void Function(int) onTabSelected;
-
-  const _HomeScreen({Key? key, required this.onTabSelected}) : super(key: key);
+  const _HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final booksVM = Provider.of<BooksViewModel>(context);
-    final listings = booksVM.publishedListingsWithImages;
-
+    final listings = context.select<BooksViewModel, List<ListingWithImage>>((vm) => vm.publishedListingsWithImages);
     return SizedBox(
       height: MediaQuery.of(context).size.height - kToolbarHeight - 100,
       child: Center(
@@ -128,19 +124,24 @@ class _HomeScreen extends StatelessWidget {
             children: [
               _OptionCard(
                 title: "Browse Books",
-                onTap: () => onTabSelected(1),
+                onTap: () => _onItemTapped(context, 1),
                 imageContent: _ListingCarousel(listings: listings),
               ),
               const SizedBox(height: 20),
               _OptionCard(
                 title: "Publish Book",
-                onTap: () => onTabSelected(2),
+                onTap: () => _onItemTapped(context, 2),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _onItemTapped(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_HomeViewState>();
+    state?._onItemTapped(index);
   }
 }
 

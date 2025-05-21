@@ -46,7 +46,6 @@ class _UserProfileViewState extends State<UserProfileView> {
   Widget build(BuildContext context) {
     final authViewModel = Provider.of<AuthViewModel>(context);
     final userProfile = authViewModel.user;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Profile"),
@@ -58,29 +57,11 @@ class _UserProfileViewState extends State<UserProfileView> {
           children: [
             const SizedBox(height: 20),
             if (isLoading)
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.grey[300],
-                    child: const Icon(Icons.person, size: 60, color: Colors.white),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _cachedName,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _cachedEmail,
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 30),
-                  _buildInfoTile(Icons.phone, "Phone", _cachedPhone),
-                  const SizedBox(height: 10),
-                  _buildInfoTile(Icons.home, "Address", _cachedAddress),
-                  const SizedBox(height: 30),
-                ],
+              _ProfileLoadingInfo(
+                cachedName: _cachedName,
+                cachedEmail: _cachedEmail,
+                cachedPhone: _cachedPhone,
+                cachedAddress: _cachedAddress,
               )
             else if (userProfile == null)
               const Text(
@@ -88,30 +69,7 @@ class _UserProfileViewState extends State<UserProfileView> {
                 style: TextStyle(fontSize: 18),
               )
             else
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.grey[300],
-                    child: const Icon(Icons.person, size: 60, color: Colors.white),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    "${userProfile.firstName ?? ''} ${userProfile.lastName ?? ''}",
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    userProfile.email,
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 30),
-                  _buildInfoTile(Icons.phone, "Phone", userProfile.phone ?? "No phone registered"),
-                  const SizedBox(height: 10),
-                  _buildInfoTile(Icons.home, "Address", userProfile.address ?? "No address registered"),
-                  const SizedBox(height: 30),
-                ],
-              ),
+              _ProfileInfo(userProfile: userProfile),
             // 🔥 Logout button SIEMPRE disponible
             ElevatedButton.icon(
               onPressed: () async {
@@ -137,8 +95,82 @@ class _UserProfileViewState extends State<UserProfileView> {
       ),
     );
   }
+}
 
-  Widget _buildInfoTile(IconData icon, String title, String value) {
+class _ProfileLoadingInfo extends StatelessWidget {
+  final String cachedName;
+  final String cachedEmail;
+  final String cachedPhone;
+  final String cachedAddress;
+  const _ProfileLoadingInfo({Key? key, required this.cachedName, required this.cachedEmail, required this.cachedPhone, required this.cachedAddress}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const CircleAvatar(
+          radius: 60,
+          backgroundColor: Colors.grey,
+          child: Icon(Icons.person, size: 60, color: Colors.white),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          cachedName,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          cachedEmail,
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+        const SizedBox(height: 30),
+        InfoTile(icon: Icons.phone, title: "Phone", value: cachedPhone),
+        const SizedBox(height: 10),
+        InfoTile(icon: Icons.home, title: "Address", value: cachedAddress),
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+}
+
+class _ProfileInfo extends StatelessWidget {
+  final dynamic userProfile;
+  const _ProfileInfo({Key? key, required this.userProfile}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const CircleAvatar(
+          radius: 60,
+          backgroundColor: Colors.grey,
+          child: Icon(Icons.person, size: 60, color: Colors.white),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          "${userProfile.firstName ?? ''} ${userProfile.lastName ?? ''}",
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          userProfile.email,
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+        const SizedBox(height: 30),
+        InfoTile(icon: Icons.phone, title: "Phone", value: userProfile.phone ?? "No phone registered"),
+        const SizedBox(height: 10),
+        InfoTile(icon: Icons.home, title: "Address", value: userProfile.address ?? "No address registered"),
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+}
+
+class InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  const InfoTile({Key? key, required this.icon, required this.title, required this.value}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
