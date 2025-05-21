@@ -62,6 +62,7 @@ class _UserLibraryViewState extends State<UserLibraryView> with RouteAware {
     final userListingsWithImages = context.select<BooksViewModel, List<ListingWithImage>>((vm) => vm.userListingsWithImages);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("My Library"),
         automaticallyImplyLeading: false,

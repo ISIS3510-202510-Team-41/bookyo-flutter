@@ -47,6 +47,7 @@ class _UserProfileViewState extends State<UserProfileView> {
     final authViewModel = Provider.of<AuthViewModel>(context);
     final userProfile = authViewModel.user;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("My Profile"),
       ),

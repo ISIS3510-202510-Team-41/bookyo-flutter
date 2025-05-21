@@ -91,6 +91,7 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
     final book = currentListing.book!;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Manage Book"),
         centerTitle: true,

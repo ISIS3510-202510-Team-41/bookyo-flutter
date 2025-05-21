@@ -23,6 +23,7 @@ class NotificationsBody extends StatelessWidget {
     final viewModel = Provider.of<NotificationsViewModel>(context);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(title: const Text("Notifications")),
       body: Builder(
         builder: (context) {

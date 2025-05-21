@@ -137,6 +137,7 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
     viewModel = Provider.of<PublishViewModel>(context);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(title: const Text("Publish")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

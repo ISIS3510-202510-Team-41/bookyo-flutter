@@ -172,7 +172,7 @@ class _OptionCard extends StatelessWidget {
             Container(
               height: imageHeight,
               width: double.infinity,
-              color: Theme.of(context).scaffoldBackgroundColor,
+              color: Colors.white,
               child: imageContent ?? const Icon(Icons.image, size: 80, color: Colors.black26),
             ),
             const SizedBox(height: 10),
@@ -202,7 +202,7 @@ class _ListingCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.transparent,
+      color: Colors.white,
       child: CarouselSlider(
         options: CarouselOptions(
           height: 230,
@@ -223,6 +223,7 @@ class _ListingCarousel extends StatelessWidget {
               return SizedBox(
                 width: 180,
                 child: Card(
+                  color: Colors.white,
                   elevation: 3,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Column(
