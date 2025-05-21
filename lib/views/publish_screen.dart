@@ -7,6 +7,7 @@ import '../viewmodels/publish_view_model.dart';
 import '../services/connectivity_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/Listing.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
 
 class PublishScreen extends StatelessWidget {
   final Listing? listingToEdit;
@@ -34,6 +35,8 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
   StreamSubscription? _connectivitySub;
   bool _hasInternet = true;
   Timer? _debounce;
+  String? remoteImageUrl;
+  bool loadingRemoteImage = false;
 
   @override
   void initState() {
@@ -45,9 +48,28 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
       viewModel.titleController.text = book?.title ?? '';
       viewModel.authorController.text = book?.author?.name ?? '';
       viewModel.priceController.text = widget.listingToEdit!.price.toString();
-      // Nota: No se prellena la imagen local, solo el path remoto
+      // Precargar imagen remota
+      final thumbnail = book?.thumbnail;
+      if (thumbnail != null && thumbnail.isNotEmpty) {
+        loadingRemoteImage = true;
+        Amplify.Storage.getUrl(path: StoragePath.fromString(thumbnail)).result.then((result) {
+          if (mounted) {
+            setState(() {
+              remoteImageUrl = result.url.toString();
+              loadingRemoteImage = false;
+            });
+          }
+        }).catchError((_) {
+          if (mounted) {
+            setState(() {
+              remoteImageUrl = null;
+              loadingRemoteImage = false;
+            });
+          }
+        });
+      }
     } else {
-      viewModel.loadDraft(); // ← Cargar el borrador local si existe
+      viewModel.loadDraft();
     }
     _monitorConnectivity();
   }
@@ -136,9 +158,22 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
                           )
                         : null,
                   ),
-                  child: viewModel.selectedImage == null
-                      ? const Icon(Icons.image, size: 80, color: Colors.black26)
-                      : null,
+                  child: viewModel.selectedImage != null
+                      ? null
+                      : loadingRemoteImage
+                          ? const Center(child: CircularProgressIndicator())
+                          : (remoteImageUrl != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    remoteImageUrl!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: 150,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 80),
+                                  ),
+                                )
+                              : const Icon(Icons.image, size: 80, color: Colors.black26)),
                 ),
               ),
               const SizedBox(height: 10),
@@ -199,7 +234,14 @@ class _PublishScreenBodyState extends State<_PublishScreenBody> {
                   ),
                 ),
               ElevatedButton(
-                onPressed: viewModel.isLoading ? null : () => viewModel.publishBook(context, listingToEdit: widget.listingToEdit),
+                onPressed: viewModel.isLoading
+                    ? null
+                    : () async {
+                        await viewModel.publishBook(context, listingToEdit: widget.listingToEdit);
+                        if (widget.listingToEdit != null && context.mounted) {
+                          Navigator.pop(context, true);
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,

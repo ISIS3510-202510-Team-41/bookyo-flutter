@@ -5,6 +5,7 @@ import 'package:bookyo_flutter/viewmodels/books_vm.dart';
 import 'package:bookyo_flutter/views/publish_screen.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:amplify_api/amplify_api.dart';
 
 class UserBookDetailView extends StatefulWidget {
   final Listing listing;
@@ -22,10 +23,12 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
   late Animation<double> _fadeAnimation;
   String? imageUrl;
   bool loadingImage = true;
+  late Listing currentListing;
 
   @override
   void initState() {
     super.initState();
+    currentListing = widget.listing;
     _controller = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -44,7 +47,7 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
   }
 
   Future<void> _loadImageUrl() async {
-    final book = widget.listing.book;
+    final book = currentListing.book;
     if (book?.thumbnail != null && book!.thumbnail!.isNotEmpty) {
       try {
         final result = await Amplify.Storage.getUrl(path: StoragePath.fromString(book.thumbnail!)).result;
@@ -66,6 +69,17 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
     }
   }
 
+  Future<Listing?> _fetchListingById(String id) async {
+    try {
+      final request = ModelQueries.get(Listing.classType, ListingModelIdentifier(id: id));
+      final response = await Amplify.API.query(request: request).response;
+      return response.data as Listing?;
+    } catch (e) {
+      debugPrint("Error fetching updated listing: $e");
+      return null;
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -74,7 +88,7 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
 
   @override
   Widget build(BuildContext context) {
-    final book = widget.listing.book!;
+    final book = currentListing.book!;
 
     return Scaffold(
       appBar: AppBar(
@@ -121,15 +135,15 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text("by ${book.author?.name ?? 'Unknown author'}",
+                  Text("by "+(book.author?.name ?? 'Unknown author'),
                       style: const TextStyle(fontSize: 16, color: Colors.black54)),
                   const SizedBox(height: 8),
                   Text(
-                    '\$ ${NumberFormat('#,##0', 'es_CO').format(widget.listing.price)}',
+                    '\$ '+NumberFormat('#,##0', 'es_CO').format(currentListing.price),
                     style: const TextStyle(fontSize: 18, color: Colors.green),
                   ),
                   const SizedBox(height: 8),
-                  Text("ISBN: ${book.isbn}",
+                  Text("ISBN: "+book.isbn,
                       style: const TextStyle(fontSize: 14, color: Colors.black87)),
 
                   const SizedBox(height: 20),
@@ -142,15 +156,29 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.edit, color: Colors.black),
                           label: const Text("Edit", style: TextStyle(color: Colors.black)),
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => PublishScreen(
-                                  listingToEdit: widget.listing,
+                                  listingToEdit: currentListing,
                                 ),
                               ),
                             );
+                            if (result == true && mounted) {
+                              setState(() {
+                                loadingImage = true;
+                              });
+                              final updatedListing = await _fetchListingById(currentListing.id);
+                              if (updatedListing != null && mounted) {
+                                setState(() {
+                                  currentListing = updatedListing;
+                                });
+                                await _loadImageUrl();
+                              } else {
+                                await _loadImageUrl();
+                              }
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFB6EB7A),
@@ -188,7 +216,7 @@ class _UserBookDetailViewState extends State<UserBookDetailView>
 
                             if (confirm == true) {
                               final booksVM = context.read<BooksViewModel>();
-                              await booksVM.deleteListing(widget.listing);
+                              await booksVM.deleteListing(currentListing);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text("Listing deleted")),

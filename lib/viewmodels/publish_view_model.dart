@@ -38,7 +38,34 @@ class PublishViewModel extends ChangeNotifier {
     final authorName = authorController.text.trim();
     final priceText = priceController.text.trim();
 
-    if ([isbn, title, authorName, priceText].any((e) => e.isEmpty) || selectedImage == null) {
+    // Permitir update sin imagen nueva si ya existe una
+    String? existingImageKey;
+    if (listingToEdit != null) {
+      existingImageKey = listingToEdit.book?.thumbnail;
+      if ((existingImageKey == null || existingImageKey.isEmpty) && listingToEdit.photos.isNotEmpty) {
+        existingImageKey = listingToEdit.photos.first;
+      }
+    }
+
+    String? imageKey;
+    if (selectedImage != null) {
+      imageKey = "images/${const Uuid().v4()}.jpg";
+      final imageFile = File(selectedImage!.path);
+      debugPrint("☁️ Subiendo imagen con key: $imageKey");
+      await Amplify.Storage.uploadFile(
+        path: StoragePath.fromString(imageKey),
+        localFile: AWSFile.fromPath(imageFile.path),
+      );
+      debugPrint("✅ Imagen subida a S3");
+      final imageBytes = await imageFile.readAsBytes();
+      final cacheBox = await Hive.openBox<CachedImage>('cached_images');
+      await cacheBox.put(imageKey, CachedImage(key: imageKey, bytes: imageBytes));
+      debugPrint("📦 Imagen guardada en caché local");
+    } else if (existingImageKey != null && existingImageKey.isNotEmpty) {
+      imageKey = existingImageKey;
+    }
+
+    if ([isbn, title, authorName, priceText].any((e) => e.isEmpty) || imageKey == null) {
       errorMessage = "All fields are required and an image must be uploaded.";
       notifyListeners();
       return;
@@ -103,21 +130,6 @@ class PublishViewModel extends ChangeNotifier {
         final userCreateResponse = await Amplify.API.mutate(request: userCreateRequest).response;
         debugPrint("✅ Usuario creado: "+user.email);
       }
-
-      final imageKey = "images/${const Uuid().v4()}.jpg";
-      final imageFile = File(selectedImage!.path);
-      debugPrint("☁️ Subiendo imagen con key: $imageKey");
-
-      await Amplify.Storage.uploadFile(
-        path: StoragePath.fromString(imageKey),
-        localFile: AWSFile.fromPath(imageFile.path),
-      );
-      debugPrint("✅ Imagen subida a S3");
-
-      final imageBytes = await imageFile.readAsBytes();
-      final cacheBox = await Hive.openBox<CachedImage>('cached_images');
-      await cacheBox.put(imageKey, CachedImage(key: imageKey, bytes: imageBytes));
-      debugPrint("📦 Imagen guardada en caché local");
 
       final authorRequest = ModelQueries.list(
         Author.classType,
