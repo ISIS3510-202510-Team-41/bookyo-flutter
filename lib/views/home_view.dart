@@ -131,6 +131,7 @@ class _HomeScreen extends StatelessWidget {
               _OptionCard(
                 title: "Publish Book",
                 onTap: () => _onItemTapped(context, 2),
+                imageContent: const Icon(Icons.local_library, size: 80, color: Colors.blueAccent),
               ),
             ],
           ),
