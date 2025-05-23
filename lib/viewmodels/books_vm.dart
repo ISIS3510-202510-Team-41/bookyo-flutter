@@ -12,8 +12,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'dart:isolate';
 import 'package:flutter/services.dart';
+import '../services/database_helper.dart';
+import 'dart:async';
+import 'package:flutter/widgets.dart';
 
-class BooksViewModel extends ChangeNotifier {
+class BooksViewModel extends ChangeNotifier with WidgetsBindingObserver {
   List<Book> _allBooks = [];
   List<Listing> _publishedListings = [];
   List<Listing> _userListings = [];
@@ -24,6 +27,8 @@ class BooksViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+
+  Timer? _syncTimer;
 
   List<Book> get allBooks => _allBooks;
   List<Listing> get publishedListings => _publishedListings;
@@ -84,7 +89,18 @@ class BooksViewModel extends ChangeNotifier {
   Future<void> fetchPublishedListings() async {
     _setLoading(true);
     try {
-      // Consulta GraphQL personalizada
+      // 1. Intentar cargar desde caché local (SQLite)
+      final cachedListingsJson = await DatabaseHelper().getListings();
+      if (cachedListingsJson.isNotEmpty) {
+        final cachedListings = cachedListingsJson.map((item) => Listing.fromJson(item)).toList();
+        _publishedListings = cachedListings;
+        _publishedListingsWithImages = await Future.wait(_publishedListings.map((listing) async {
+          final url = await _getListingImageUrl(listing);
+          return ListingWithImage(listing: listing, imageUrl: url);
+        }));
+        notifyListeners();
+      }
+      // 2. Sincronizar con la API y refrescar caché
       const String listPublishedListingsQuery = '''
         query ListPublishedListings {
           listListings {
@@ -116,13 +132,16 @@ class BooksViewModel extends ChangeNotifier {
       if (data == null) throw Exception('No data from API');
       final decoded = jsonDecode(data) as Map<String, dynamic>;
       final items = decoded['listListings']['items'] as List<dynamic>;
-      // Parseo en Isolate
       final listings = await parseListingsInIsolate(items);
       _publishedListings = listings;
       _publishedListingsWithImages = await Future.wait(_publishedListings.map((listing) async {
         final url = await _getListingImageUrl(listing);
         return ListingWithImage(listing: listing, imageUrl: url);
       }));
+      // Guardar en caché local (SQLite)
+      final itemsAsMap = items.map((e) => e as Map<String, dynamic>).toList();
+      await DatabaseHelper().clearListings();
+      await DatabaseHelper().insertListings(itemsAsMap);
       _errorMessage = null;
     } catch (e) {
       _publishedListings = [];
@@ -195,6 +214,14 @@ class BooksViewModel extends ChangeNotifier {
   Future<void> fetchUserLibraryBooks() async {
     _setLoading(true);
     try {
+      // 1. Intentar cargar desde caché local (SQLite)
+      final cachedBooksJson = await DatabaseHelper().getUserLibrary();
+      if (cachedBooksJson.isNotEmpty) {
+        final cachedBooks = cachedBooksJson.map((item) => Book.fromJson(item)).toList();
+        _userLibraryBooks = cachedBooks;
+        notifyListeners();
+      }
+      // 2. Sincronizar con la API y refrescar caché
       final currentUser = await Amplify.Auth.getCurrentUser();
       final userRequest = ModelQueries.list(
         User.classType,
@@ -233,7 +260,10 @@ class BooksViewModel extends ChangeNotifier {
           .where((entry) => entry.book != null)
           .map((entry) => entry.book!)
           .toList();
-
+      // Guardar en caché local (SQLite)
+      final booksAsMap = _userLibraryBooks.map((b) => b.toJson()).toList();
+      await DatabaseHelper().clearUserLibrary();
+      await DatabaseHelper().insertUserLibrary(booksAsMap);
       _errorMessage = null;
     } catch (e) {
       _userLibraryBooks = [];
@@ -288,6 +318,32 @@ class BooksViewModel extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  void startAutoSync() {
+    // Sincroniza cada 5 minutos
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      fetchPublishedListings();
+      fetchUserListings();
+    });
+    // Observa el ciclo de vida de la app
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      fetchPublishedListings();
+      fetchUserListings();
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 }
 

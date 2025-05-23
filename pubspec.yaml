@@ -22,6 +22,7 @@ dependencies:
   hive_flutter: ^1.1.0
   path_provider: ^2.1.1
   connectivity_plus: ^6.1.4
+  sqflite: ^2.4.1
 
 dev_dependencies:
   flutter_test:

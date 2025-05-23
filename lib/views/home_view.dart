@@ -11,6 +11,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_api/amplify_api.dart';
 import '../models/Author.dart';
 import 'package:intl/intl.dart';
+import '../services/database_helper.dart';
 
 class HomeView extends StatefulWidget {
   @override
@@ -23,11 +24,14 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    // Limpia la base de datos local de listings corruptos (solo la primera vez)
+    DatabaseHelper().clearListings();
     // 👉 Esto asegura que se carguen los libros y listings al iniciar la app
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final booksVM = Provider.of<BooksViewModel>(context, listen: false);
       booksVM.fetchBooks();
       booksVM.fetchPublishedListings();
+      booksVM.startAutoSync();
     });
   }
 
