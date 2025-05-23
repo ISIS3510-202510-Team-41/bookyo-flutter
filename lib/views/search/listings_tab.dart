@@ -128,7 +128,7 @@ class _BookListingCard extends StatelessWidget {
   Widget _buildThumbnail(String? imageUrl) {
     if (imageUrl != null && imageUrl.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Image.network(
           imageUrl,
           width: 60,
@@ -148,9 +148,11 @@ class _BookListingCard extends StatelessWidget {
       height: 80,
       decoration: BoxDecoration(
         color: Colors.grey[300],
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: const Icon(Icons.book, size: 40, color: Colors.black38),
+      child: const Center(
+        child: Icon(Icons.book, size: 40, color: Colors.black38),
+      ),
     );
   }
 }

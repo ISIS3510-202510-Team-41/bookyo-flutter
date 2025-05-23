@@ -14,7 +14,6 @@ import 'models/ModelProvider.dart';
 import 'viewmodels/auth_vm.dart';
 import 'viewmodels/user_vm.dart';
 import 'viewmodels/books_vm.dart';
-import 'viewmodels/user_library_vm.dart';
 import 'views/splash_view.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
@@ -66,7 +65,6 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => UserViewModel()),
         ChangeNotifierProvider(create: (_) => BooksViewModel()),
-        ChangeNotifierProvider(create: (_) => UserLibraryViewModel()),
       ],
       child: MyApp(showNoInternetToast: !hasInternet),
     ),

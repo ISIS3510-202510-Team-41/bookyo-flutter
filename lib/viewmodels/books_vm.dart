@@ -9,8 +9,15 @@ import '../models/UserLibrary.dart';
 import '../models/BookLibrary.dart';
 import '../models/cached_image.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'dart:isolate';
+import 'package:flutter/services.dart';
+import '../services/database_helper.dart';
+import 'dart:async';
+import 'package:flutter/widgets.dart';
+import '../services/connectivity_service.dart';
 
-class BooksViewModel extends ChangeNotifier {
+class BooksViewModel extends ChangeNotifier with WidgetsBindingObserver {
   List<Book> _allBooks = [];
   List<Listing> _publishedListings = [];
   List<Listing> _userListings = [];
@@ -21,6 +28,8 @@ class BooksViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+
+  Timer? _syncTimer;
 
   List<Book> get allBooks => _allBooks;
   List<Listing> get publishedListings => _publishedListings;
@@ -35,43 +44,53 @@ class BooksViewModel extends ChangeNotifier {
   /// 🔍 Cargar libros y sus imágenes desde S3 o Hive (caché)
   Future<void> fetchBooks() async {
     _setLoading(true);
+    // 1. Intenta cargar desde SQLite primero (si tienes persistencia local para books)
+    // ... (tu lógica aquí, si aplica) ...
+    // 2. Verifica conectividad antes de llamar a la API
+    final isOnline = await ConnectivityService.hasInternet();
+    if (!isOnline) {
+      if (_allBooks.isEmpty) {
+        _errorMessage = 'No internet connection and no saved data available.';
+        notifyListeners();
+      }
+      _setLoading(false);
+      return;
+    }
+    // 3. Si hay conexión, sincroniza con la API
     try {
       final request = ModelQueries.list(Book.classType);
       final response = await Amplify.API.query(request: request).response;
       _allBooks = (response.data?.items ?? []).whereType<Book>().toList();
-
       _booksWithImages = await Future.wait(_allBooks.map((book) async {
         Uri? imageUrl;
-
         if (book.thumbnail != null) {
           try {
-            // Primero intentar desde S3
             final result = await Amplify.Storage.getUrl(
               path: StoragePath.fromString(book.thumbnail!),
             ).result;
             imageUrl = result.url;
           } catch (e) {
             // Si falla, intentar desde Hive (modo offline)
-            debugPrint("⚠️ Error al cargar desde S3, intentando Hive: ${book.thumbnail}");
+            debugPrint("⚠️ Error al cargar desde S3, intentando Hive: "+book.thumbnail!);
             final cacheBox = await Hive.openBox<CachedImage>('cached_images');
             final cached = cacheBox.get(book.thumbnail!);
             if (cached != null) {
               imageUrl = Uri.dataFromBytes(cached.bytes, mimeType: 'image/jpeg');
               debugPrint("📦 Imagen cargada desde caché local");
             } else {
-              debugPrint("❌ Imagen no encontrada en Hive: ${book.thumbnail}");
+              debugPrint("❌ Imagen no encontrada en Hive: "+book.thumbnail!);
             }
           }
         }
-
         return BookWithImage(book: book, imageUrl: imageUrl);
       }).toList());
-
       _errorMessage = null;
+      notifyListeners();
     } catch (e) {
       _allBooks = [];
       _booksWithImages = [];
       _errorMessage = 'Error fetching books: $e';
+      notifyListeners();
     } finally {
       _setLoading(false);
     }
@@ -80,8 +99,29 @@ class BooksViewModel extends ChangeNotifier {
   /// 🛍️ Cargar todos los listings públicos
   Future<void> fetchPublishedListings() async {
     _setLoading(true);
+    // 1. Siempre intenta cargar desde SQLite primero
+    final cachedListingsJson = await DatabaseHelper().getListings();
+    if (cachedListingsJson.isNotEmpty) {
+      final cachedListings = cachedListingsJson.map((item) => Listing.fromJson(item)).toList();
+      _publishedListings = cachedListings;
+      _publishedListingsWithImages = await Future.wait(_publishedListings.map((listing) async {
+        final url = await _getListingImageUrl(listing);
+        return ListingWithImage(listing: listing, imageUrl: url);
+      }));
+      notifyListeners();
+    }
+    // 2. Verifica conectividad antes de llamar a la API
+    final isOnline = await ConnectivityService.hasInternet();
+    if (!isOnline) {
+      if (_publishedListings.isEmpty) {
+        _errorMessage = 'No internet connection and no saved data available.';
+        notifyListeners();
+      }
+      _setLoading(false);
+      return;
+    }
+    // 3. Si hay conexión, sincroniza con la API
     try {
-      // Consulta GraphQL personalizada
       const String listPublishedListingsQuery = '''
         query ListPublishedListings {
           listListings {
@@ -113,17 +153,25 @@ class BooksViewModel extends ChangeNotifier {
       if (data == null) throw Exception('No data from API');
       final decoded = jsonDecode(data) as Map<String, dynamic>;
       final items = decoded['listListings']['items'] as List<dynamic>;
-      final listings = items.map((item) => Listing.fromJson(item as Map<String, dynamic>)).toList();
+      final listings = await parseListingsInIsolate(items);
       _publishedListings = listings;
       _publishedListingsWithImages = await Future.wait(_publishedListings.map((listing) async {
         final url = await _getListingImageUrl(listing);
         return ListingWithImage(listing: listing, imageUrl: url);
       }));
+      // Guardar en caché local (SQLite)
+      final itemsAsMap = items.map((e) => e as Map<String, dynamic>).toList();
+      await DatabaseHelper().clearListings();
+      await DatabaseHelper().insertListings(itemsAsMap);
       _errorMessage = null;
+      notifyListeners();
     } catch (e) {
-      _publishedListings = [];
-      _publishedListingsWithImages = [];
-      _errorMessage = 'Error fetching published listings: $e';
+      if (_publishedListings.isEmpty) {
+        _publishedListings = [];
+        _publishedListingsWithImages = [];
+        _errorMessage = 'Error fetching published listings: $e';
+        notifyListeners();
+      }
     } finally {
       _setLoading(false);
     }
@@ -132,6 +180,29 @@ class BooksViewModel extends ChangeNotifier {
   /// 👤 Cargar listings del usuario autenticado usando GraphQL custom para traer autor anidado
   Future<void> fetchUserListings() async {
     _setLoading(true);
+    // 1. Siempre intenta cargar desde SQLite primero
+    // Si tienes una función similar a getUserListings en DatabaseHelper, úsala aquí
+    // final cachedUserListingsJson = await DatabaseHelper().getUserListings();
+    // if (cachedUserListingsJson.isNotEmpty) {
+    //   final cachedUserListings = cachedUserListingsJson.map((item) => Listing.fromJson(item)).toList();
+    //   _userListings = cachedUserListings;
+    //   _userListingsWithImages = await Future.wait(_userListings.map((listing) async {
+    //     final url = await _getListingImageUrl(listing);
+    //     return ListingWithImage(listing: listing, imageUrl: url);
+    //   }));
+    //   notifyListeners();
+    // }
+    // 2. Verifica conectividad antes de llamar a la API
+    final isOnline = await ConnectivityService.hasInternet();
+    if (!isOnline) {
+      if (_userListings.isEmpty) {
+        _errorMessage = 'No internet connection and no saved data available.';
+        notifyListeners();
+      }
+      _setLoading(false);
+      return;
+    }
+    // 3. Si hay conexión, sincroniza con la API
     try {
       final attributes = await Amplify.Auth.fetchUserAttributes();
       final email = attributes.firstWhere((a) => a.userAttributeKey.key == 'email').value;
@@ -178,10 +249,12 @@ class BooksViewModel extends ChangeNotifier {
       }));
       _errorMessage = null;
       debugPrint("✅ Listings del usuario cargados (custom query): "+_userListings.length.toString());
+      notifyListeners();
     } catch (e) {
       _userListings = [];
       _userListingsWithImages = [];
       _errorMessage = 'Error fetching user listings: $e';
+      notifyListeners();
     } finally {
       _setLoading(false);
     }
@@ -190,6 +263,24 @@ class BooksViewModel extends ChangeNotifier {
   /// 📚 Cargar libros guardados por el usuario
   Future<void> fetchUserLibraryBooks() async {
     _setLoading(true);
+    // 1. Siempre intenta cargar desde SQLite primero
+    final cachedBooksJson = await DatabaseHelper().getUserLibrary();
+    if (cachedBooksJson.isNotEmpty) {
+      final cachedBooks = cachedBooksJson.map((item) => Book.fromJson(item)).toList();
+      _userLibraryBooks = cachedBooks;
+      notifyListeners();
+    }
+    // 2. Verifica conectividad antes de llamar a la API
+    final isOnline = await ConnectivityService.hasInternet();
+    if (!isOnline) {
+      if (_userLibraryBooks.isEmpty) {
+        _errorMessage = 'No internet connection and no saved data available.';
+        notifyListeners();
+      }
+      _setLoading(false);
+      return;
+    }
+    // 3. Si hay conexión, sincroniza con la API
     try {
       final currentUser = await Amplify.Auth.getCurrentUser();
       final userRequest = ModelQueries.list(
@@ -229,11 +320,18 @@ class BooksViewModel extends ChangeNotifier {
           .where((entry) => entry.book != null)
           .map((entry) => entry.book!)
           .toList();
-
+      // Guardar en caché local (SQLite)
+      final booksAsMap = _userLibraryBooks.map((b) => b.toJson()).toList();
+      await DatabaseHelper().clearUserLibrary();
+      await DatabaseHelper().insertUserLibrary(booksAsMap);
       _errorMessage = null;
+      notifyListeners();
     } catch (e) {
-      _userLibraryBooks = [];
-      _errorMessage = 'Error fetching user library books: $e';
+      if (_userLibraryBooks.isEmpty) {
+        _userLibraryBooks = [];
+        _errorMessage = 'Error fetching user library books: $e';
+        notifyListeners();
+      }
     } finally {
       _setLoading(false);
     }
@@ -285,6 +383,32 @@ class BooksViewModel extends ChangeNotifier {
     }
     return null;
   }
+
+  void startAutoSync() {
+    // Sincroniza cada 5 minutos
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      fetchPublishedListings();
+      fetchUserListings();
+    });
+    // Observa el ciclo de vida de la app
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      fetchPublishedListings();
+      fetchUserListings();
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 }
 
 /// 📘 Clase auxiliar para manejar libros con imagen
@@ -299,4 +423,30 @@ class ListingWithImage {
   final Listing listing;
   final String? imageUrl;
   ListingWithImage({required this.listing, required this.imageUrl});
+}
+
+// Función de entrada para el Isolate
+void listingsIsolateEntry(Map<String, dynamic> args) async {
+  final SendPort sendPort = args['sendPort'];
+  final RootIsolateToken rootIsolateToken = args['rootIsolateToken'];
+  final List<dynamic> items = args['items'];
+  BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+  // Parseo de los listings
+  final parsed = items.map((item) => Listing.fromJson(item as Map<String, dynamic>)).toList();
+  sendPort.send(parsed);
+}
+
+Future<List<Listing>> parseListingsInIsolate(List<dynamic> items) async {
+  final receivePort = ReceivePort();
+  final rootIsolateToken = RootIsolateToken.instance!;
+  await Isolate.spawn(
+    listingsIsolateEntry,
+    {
+      'sendPort': receivePort.sendPort,
+      'rootIsolateToken': rootIsolateToken,
+      'items': items,
+    },
+  );
+  final result = await receivePort.first as List<dynamic>;
+  return result.cast<Listing>();
 }

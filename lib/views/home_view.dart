@@ -2,7 +2,6 @@ import 'package:bookyo_flutter/viewmodels/books_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
-import '../viewmodels/user_library_vm.dart';
 import 'publish_screen.dart';
 import 'notifications_screen.dart';
 import 'user_profile_view.dart';
@@ -12,6 +11,7 @@ import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_api/amplify_api.dart';
 import '../models/Author.dart';
 import 'package:intl/intl.dart';
+import '../services/database_helper.dart';
 
 class HomeView extends StatefulWidget {
   @override
@@ -24,11 +24,14 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    // Limpia la base de datos local de listings corruptos (solo la primera vez)
+    DatabaseHelper().clearListings();
     // 👉 Esto asegura que se carguen los libros y listings al iniciar la app
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final booksVM = Provider.of<BooksViewModel>(context, listen: false);
       booksVM.fetchBooks();
       booksVM.fetchPublishedListings();
+      booksVM.startAutoSync();
     });
   }
 
@@ -41,7 +44,6 @@ class _HomeViewState extends State<HomeView> {
 
   void _onItemTapped(int index) {
     final booksVM = Provider.of<BooksViewModel>(context, listen: false);
-    final userLibraryVM = Provider.of<UserLibraryViewModel>(context, listen: false);
 
     if (index == 1) {
       booksVM.fetchBooks();
@@ -209,6 +211,31 @@ class _ListingCarousel extends StatelessWidget {
 
   const _ListingCarousel({Key? key, required this.listings}) : super(key: key);
 
+  Widget _buildThumbnail(String? imageUrl) {
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          errorBuilder: (_, __, ___) => _fallbackThumbnail(),
+        ),
+      );
+    } else {
+      return _fallbackThumbnail();
+    }
+  }
+
+  Widget _fallbackThumbnail() {
+    return Container(
+      color: Colors.grey[300],
+      child: const Center(
+        child: Icon(Icons.book, size: 40, color: Colors.black38),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -240,18 +267,7 @@ class _ListingCarousel extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                          child: Image.network(
-                            imageUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.book, size: 40, color: Colors.black38),
-                            ),
-                          ),
-                        ),
+                        child: _buildThumbnail(imageUrl),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
