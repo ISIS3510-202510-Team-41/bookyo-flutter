@@ -75,8 +75,11 @@ class _UserProfileViewState extends State<UserProfileView> {
             ElevatedButton.icon(
               onPressed: () async {
                 await authViewModel.logout();
-                Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (_) => LoginView()));
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginView()),
+                  (route) => false,
+                );
               },
               icon: const Icon(Icons.logout, color: Colors.black),
               label: const Text(
