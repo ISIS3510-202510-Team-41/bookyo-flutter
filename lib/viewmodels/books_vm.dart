@@ -181,17 +181,6 @@ class BooksViewModel extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> fetchUserListings() async {
     _setLoading(true);
     // 1. Siempre intenta cargar desde SQLite primero
-    // Si tienes una función similar a getUserListings en DatabaseHelper, úsala aquí
-    // final cachedUserListingsJson = await DatabaseHelper().getUserListings();
-    // if (cachedUserListingsJson.isNotEmpty) {
-    //   final cachedUserListings = cachedUserListingsJson.map((item) => Listing.fromJson(item)).toList();
-    //   _userListings = cachedUserListings;
-    //   _userListingsWithImages = await Future.wait(_userListings.map((listing) async {
-    //     final url = await _getListingImageUrl(listing);
-    //     return ListingWithImage(listing: listing, imageUrl: url);
-    //   }));
-    //   notifyListeners();
-    // }
     // 2. Verifica conectividad antes de llamar a la API
     final isOnline = await ConnectivityService.hasInternet();
     if (!isOnline) {
