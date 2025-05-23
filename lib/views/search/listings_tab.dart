@@ -7,27 +7,76 @@ import 'package:amplify_api/amplify_api.dart';
 import '../../models/Author.dart';
 import 'package:intl/intl.dart';
 
-class ListingsTab extends StatelessWidget {
+class ListingsTab extends StatefulWidget {
   final List<ListingWithImage> listingsWithImages;
 
   const ListingsTab({Key? key, required this.listingsWithImages}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    if (listingsWithImages.isEmpty) {
-      return const Center(child: Text('No listings available yet.'));
-    }
+  State<ListingsTab> createState() => _ListingsTabState();
+}
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: listingsWithImages.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = listingsWithImages[index];
-        final listing = item.listing;
-        if (listing.book == null) return const SizedBox.shrink();
-        return _BookListingCard(listing: listing, imageUrl: item.imageUrl);
-      },
+class _ListingsTabState extends State<ListingsTab> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Filtrado flexible por título o autor
+    final filteredListings = widget.listingsWithImages.where((item) {
+      final book = item.listing.book;
+      if (book == null) return false;
+      final title = book.title.toLowerCase();
+      final author = (book.author?.name ?? '').toLowerCase();
+      final query = _searchText.trim().toLowerCase();
+      return title.contains(query) || author.contains(query);
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) {
+              setState(() {
+                _searchText = value;
+              });
+            },
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'Search by title or author',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.grey[100],
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+            ),
+          ),
+        ),
+        Expanded(
+          child: filteredListings.isEmpty
+              ? const Center(child: Text('No results found.'))
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredListings.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = filteredListings[index];
+                    final listing = item.listing;
+                    if (listing.book == null) return const SizedBox.shrink();
+                    return _BookListingCard(listing: listing, imageUrl: item.imageUrl);
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
