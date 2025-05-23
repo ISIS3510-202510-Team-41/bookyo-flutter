@@ -9,6 +9,9 @@ import '../models/UserLibrary.dart';
 import '../models/BookLibrary.dart';
 import '../models/cached_image.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'dart:isolate';
+import 'package:flutter/services.dart';
 
 class BooksViewModel extends ChangeNotifier {
   List<Book> _allBooks = [];
@@ -113,7 +116,8 @@ class BooksViewModel extends ChangeNotifier {
       if (data == null) throw Exception('No data from API');
       final decoded = jsonDecode(data) as Map<String, dynamic>;
       final items = decoded['listListings']['items'] as List<dynamic>;
-      final listings = items.map((item) => Listing.fromJson(item as Map<String, dynamic>)).toList();
+      // Parseo en Isolate
+      final listings = await parseListingsInIsolate(items);
       _publishedListings = listings;
       _publishedListingsWithImages = await Future.wait(_publishedListings.map((listing) async {
         final url = await _getListingImageUrl(listing);
@@ -299,4 +303,30 @@ class ListingWithImage {
   final Listing listing;
   final String? imageUrl;
   ListingWithImage({required this.listing, required this.imageUrl});
+}
+
+// Función de entrada para el Isolate
+void listingsIsolateEntry(Map<String, dynamic> args) async {
+  final SendPort sendPort = args['sendPort'];
+  final RootIsolateToken rootIsolateToken = args['rootIsolateToken'];
+  final List<dynamic> items = args['items'];
+  BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+  // Parseo de los listings
+  final parsed = items.map((item) => Listing.fromJson(item as Map<String, dynamic>)).toList();
+  sendPort.send(parsed);
+}
+
+Future<List<Listing>> parseListingsInIsolate(List<dynamic> items) async {
+  final receivePort = ReceivePort();
+  final rootIsolateToken = RootIsolateToken.instance!;
+  await Isolate.spawn(
+    listingsIsolateEntry,
+    {
+      'sendPort': receivePort.sendPort,
+      'rootIsolateToken': rootIsolateToken,
+      'items': items,
+    },
+  );
+  final result = await receivePort.first as List<dynamic>;
+  return result.cast<Listing>();
 }

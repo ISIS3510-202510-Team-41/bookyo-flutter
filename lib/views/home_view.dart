@@ -2,7 +2,6 @@ import 'package:bookyo_flutter/viewmodels/books_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
-import '../viewmodels/user_library_vm.dart';
 import 'publish_screen.dart';
 import 'notifications_screen.dart';
 import 'user_profile_view.dart';
@@ -41,7 +40,6 @@ class _HomeViewState extends State<HomeView> {
 
   void _onItemTapped(int index) {
     final booksVM = Provider.of<BooksViewModel>(context, listen: false);
-    final userLibraryVM = Provider.of<UserLibraryViewModel>(context, listen: false);
 
     if (index == 1) {
       booksVM.fetchBooks();
