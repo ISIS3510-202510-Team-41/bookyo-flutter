@@ -1,15 +1,50 @@
 import 'package:flutter/material.dart';
-import '../models/Notification.dart' as model;
+import 'package:bookyo_flutter/models/Notification.dart' as model;
+import 'package:bookyo_flutter/views/Book/book_detail_view.dart';
+import 'package:bookyo_flutter/models/Listing.dart';
+import 'package:bookyo_flutter/services/connectivity_service.dart';  
 
 class NotificationCard extends StatelessWidget {
   final model.Notification notification;
   final VoidCallback onDismiss;
+  final Listing? listing;
 
   const NotificationCard({
     super.key,
     required this.notification,
     required this.onDismiss,
+    this.listing,
   });
+
+  Future<void> _handleViewDetail(BuildContext context) async {
+    final hasConnection = await ConnectivityService.hasInternet(); 
+
+    if (!hasConnection) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("🔌 No internet connection. Please try again later."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (listing == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("📚 No book linked to this notification."),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BookDetailView(listing: listing!),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,14 +82,7 @@ class NotificationCard extends StatelessWidget {
                   Text(notification.body),
                   const SizedBox(height: 10),
                   ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("📚 Detalle no disponible aún"),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
+                    onPressed: () => _handleViewDetail(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFB8E986),
                       foregroundColor: Colors.black,

@@ -2,15 +2,20 @@ import 'package:bookyo_flutter/viewmodels/books_vm.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_api/amplify_api.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // <-- Nueva librería
+
 import 'publish_screen.dart';
 import 'notifications_screen.dart';
 import 'user_profile_view.dart';
 import 'search/search_view.dart';
 import 'user_library/user_library_view.dart';
-import 'package:amplify_flutter/amplify_flutter.dart';
-import 'package:amplify_api/amplify_api.dart';
+import 'cart_view.dart';
 import '../models/Author.dart';
-import 'package:intl/intl.dart';
+import '../models/Listing.dart';
 import '../services/database_helper.dart';
 
 class HomeView extends StatefulWidget {
@@ -24,7 +29,6 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
-    // Limpia la base de datos local de listings corruptos (solo la primera vez)
     DatabaseHelper().clearListings();
     // 👉 Esto asegura que se carguen los libros y listings al iniciar la app
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -36,23 +40,36 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _goToProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => UserProfileView()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => UserProfileView()));
   }
 
   void _onItemTapped(int index) {
     final booksVM = Provider.of<BooksViewModel>(context, listen: false);
-
     if (index == 1) {
       booksVM.fetchBooks();
       booksVM.fetchPublishedListings();
     } else if (index == 4) {
       booksVM.fetchUserListings();
     }
-
     setState(() => _selectedIndex = index);
+  }
+
+  void _goToCart() {
+    final box = Hive.box<Listing>('cartBox');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CartView(
+          cartItems: box.values.toList(),
+          onRemove: (listing) async {
+            final key = box.keys.firstWhere((k) => box.get(k)?.id == listing.id, orElse: () => null);
+            if (key != null) {
+              await box.delete(key);
+            }
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -61,16 +78,10 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.person),
-          onPressed: _goToProfile,
-        ),
+        leading: IconButton(icon: const Icon(Icons.person), onPressed: _goToProfile),
         title: const Text("Bookyo", style: TextStyle(color: Colors.black)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () => _onItemTapped(1),
-          ),
+          IconButton(icon: const Icon(Icons.shopping_cart), onPressed: _goToCart),
         ],
         iconTheme: const IconThemeData(color: Colors.black),
         elevation: 0.5,
@@ -165,14 +176,13 @@ class _OptionCard extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? imageContent;
 
-  const _OptionCard({Key? key, required this.title, required this.onTap, this.imageContent})
-      : super(key: key);
+  const _OptionCard({Key? key, required this.title, required this.onTap, this.imageContent}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     double imageHeight = 250;
     if (title == "Publish Book") {
-      imageHeight = 120; // Más pequeño para Publish Book
+      imageHeight = 120;
     }
     return GestureDetector(
       onTap: onTap,
@@ -215,11 +225,12 @@ class _ListingCarousel extends StatelessWidget {
     if (imageUrl != null && imageUrl.isNotEmpty) {
       return ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-        child: Image.network(
-          imageUrl,
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
           fit: BoxFit.cover,
           width: double.infinity,
-          errorBuilder: (_, __, ___) => _fallbackThumbnail(),
+          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+          errorWidget: (context, url, error) => _fallbackThumbnail(),
         ),
       );
     } else {
@@ -266,9 +277,7 @@ class _ListingCarousel extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        child: _buildThumbnail(imageUrl),
-                      ),
+                      Expanded(child: _buildThumbnail(imageUrl)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         child: Column(
@@ -281,16 +290,13 @@ class _ListingCarousel extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             book.author?.name != null
-                              ? Text(
-                                  // ignore: unnecessary_type_check
-                                  book.author!.name is String ? book.author!.name : book.author!.name.toString(),
-                                  style: const TextStyle(fontSize: 13, color: Colors.black54),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                )
-                              : AuthorNameFetcher(
-                                  authorId: book.author?.id?.toString(),
-                                ),
+                                ? Text(
+                                    book.author!.name,
+                                    style: const TextStyle(fontSize: 13, color: Colors.black54),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                : AuthorNameFetcher(authorId: book.author?.id?.toString()),
                             const SizedBox(height: 2),
                             Text(
                               '\$ ${NumberFormat('#,##0', 'es_CO').format(listing.price)}',
