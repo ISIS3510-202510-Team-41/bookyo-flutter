@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
@@ -38,7 +40,6 @@ class PublishViewModel extends ChangeNotifier {
     final authorName = authorController.text.trim();
     final priceText = priceController.text.trim();
 
-    // Permitir update sin imagen nueva si ya existe una
     String? existingImageKey;
     if (listingToEdit != null) {
       existingImageKey = listingToEdit.book?.thumbnail;
@@ -57,7 +58,8 @@ class PublishViewModel extends ChangeNotifier {
         localFile: AWSFile.fromPath(imageFile.path),
       );
       debugPrint("✅ Imagen subida a S3");
-      final imageBytes = await imageFile.readAsBytes();
+
+      final imageBytes = await compute(_readImageBytesInIsolate, imageFile.path);
       final cacheBox = await Hive.openBox<CachedImage>('cached_images');
       await cacheBox.put(imageKey, CachedImage(key: imageKey, bytes: imageBytes));
       debugPrint("📦 Imagen guardada en caché local");
@@ -123,12 +125,12 @@ class PublishViewModel extends ChangeNotifier {
       late final User user;
       if (users.isNotEmpty) {
         user = users.first;
-        debugPrint("👤 Usuario encontrado: "+user.email);
+        debugPrint("👤 Usuario encontrado: ${user.email}");
       } else {
         user = User(email: email);
         final userCreateRequest = ModelMutations.create(user);
-        final userCreateResponse = await Amplify.API.mutate(request: userCreateRequest).response;
-        debugPrint("✅ Usuario creado: "+user.email);
+        await Amplify.API.mutate(request: userCreateRequest).response;
+        debugPrint("✅ Usuario creado: ${user.email}");
       }
 
       final authorRequest = ModelQueries.list(
@@ -141,88 +143,51 @@ class PublishViewModel extends ChangeNotifier {
       Author author;
       if (existingAuthors.isNotEmpty) {
         author = existingAuthors.whereType<Author>().first;
-        debugPrint("✅ Autor encontrado: "+author.id+" name: "+author.name);
+        debugPrint("✅ Autor encontrado: ${author.id} name: ${author.name}");
       } else {
         author = Author(name: authorName);
         final authorCreateRequest = ModelMutations.create(author);
-        final authorCreateResponse = await Amplify.API.mutate(request: authorCreateRequest).response;
-        debugPrint("✅ Autor creado: "+author.id+" name: "+author.name);
+        await Amplify.API.mutate(request: authorCreateRequest).response;
+        debugPrint("✅ Autor creado: ${author.id} name: ${author.name}");
       }
 
-      final bookRequest = ModelQueries.list(
-        Book.classType,
-        where: Book.ISBN.eq(isbn),
-      );
+      final bookRequest = ModelQueries.list(Book.classType, where: Book.ISBN.eq(isbn));
       final bookResponse = await Amplify.API.query(request: bookRequest).response;
       final existingBooks = (bookResponse.data?.items ?? []).whereType<Book>().toList();
 
       Book book;
       if (existingBooks.isNotEmpty) {
-        book = existingBooks.whereType<Book>().first;
-        debugPrint("⚠️ Ya existe un libro con este ISBN: "+book.id+" author: "+(book.author?.name ?? 'null'));
+        book = existingBooks.first;
+        debugPrint("⚠️ Ya existe un libro con este ISBN: ${book.id}");
         if (book.author == null) {
           final updatedBook = book.copyWith(author: author);
-          final bookUpdateRequest = ModelMutations.update(updatedBook);
-          await Amplify.API.mutate(request: bookUpdateRequest).response;
+          await Amplify.API.mutate(request: ModelMutations.update(updatedBook)).response;
           book = updatedBook;
-          debugPrint("🔄 Libro actualizado con autor: "+author.name);
         }
       } else {
-        book = Book(
-          title: title,
-          isbn: isbn,
-          thumbnail: imageKey,
-          author: author,
-        );
-        final bookCreateRequest = ModelMutations.create(book);
-        final bookCreateResponse = await Amplify.API.mutate(request: bookCreateRequest).response;
-        debugPrint("✅ Libro creado: "+book.id+" author: "+author.name);
+        book = Book(title: title, isbn: isbn, thumbnail: imageKey, author: author);
+        await Amplify.API.mutate(request: ModelMutations.create(book)).response;
       }
 
       if (listingToEdit != null) {
-        // Modo edición: actualizar Listing y Book
-        final updatedBook = book.copyWith(
-          title: title,
-          isbn: isbn,
-          thumbnail: imageKey,
-          author: author,
-        );
-        final bookUpdateRequest = ModelMutations.update(updatedBook);
-        await Amplify.API.mutate(request: bookUpdateRequest).response;
+        final updatedBook = book.copyWith(title: title, isbn: isbn, thumbnail: imageKey, author: author);
+        await Amplify.API.mutate(request: ModelMutations.update(updatedBook)).response;
 
-        final updatedListing = listingToEdit.copyWith(
-          book: updatedBook,
-          price: price,
-          photos: [imageKey],
-          user: user,
-        );
-        final listingUpdateRequest = ModelMutations.update(updatedListing);
-        await Amplify.API.mutate(request: listingUpdateRequest).response;
+        final updatedListing = listingToEdit.copyWith(book: updatedBook, price: price, photos: [imageKey], user: user);
+        await Amplify.API.mutate(request: ModelMutations.update(updatedListing)).response;
 
         await clearDraft();
         _reset();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("📚 Book updated successfully")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("📚 Book updated successfully")));
         return;
       }
 
-      // Modo publicación normal
-      final listing = Listing(
-        book: book,
-        price: price,
-        photos: [imageKey],
-        user: user,
-      );
-      final listingCreateRequest = ModelMutations.create(listing);
-      final listingCreateResponse = await Amplify.API.mutate(request: listingCreateRequest).response;
-      debugPrint("✅ Listing creado con usuario");
+      final listing = Listing(book: book, price: price, photos: [imageKey], user: user);
+      await Amplify.API.mutate(request: ModelMutations.create(listing)).response;
 
       await clearDraft();
       _reset();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("📚 Book published successfully")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("📚 Book published successfully")));
     } catch (e, st) {
       debugPrint("❌ Error al publicar: $e");
       debugPrint("📄 Stacktrace:\n$st");
@@ -270,4 +235,8 @@ class PublishViewModel extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
   }
+}
+
+Future<List<int>> _readImageBytesInIsolate(String path) async {
+  return await File(path).readAsBytes();
 }

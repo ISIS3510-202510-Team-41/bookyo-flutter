@@ -3,6 +3,9 @@ import 'package:bookyo_flutter/models/Listing.dart';
 import 'package:bookyo_flutter/models/Book.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:bookyo_flutter/views/cart_view.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class BookDetailView extends StatefulWidget {
   final Listing listing;
@@ -23,7 +26,6 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -35,7 +37,6 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
     _controller.forward();
 
     _loadImageUrl();
@@ -62,6 +63,31 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
         loadingImage = false;
       });
     }
+  }
+
+  Future<void> _addToCartAndNavigate() async {
+    final box = Hive.box<Listing>('cartBox');
+    final currentItems = box.values.toList();
+
+    if (!currentItems.any((item) => item.id == widget.listing.id)) {
+      await box.add(widget.listing);
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CartView(
+          cartItems: box.values.toList(),
+          onRemove: (listing) async {
+            final key = box.keys.firstWhere((k) => box.get(k)?.id == listing.id, orElse: () => null);
+            if (key != null) {
+              await box.delete(key);
+              setState(() {}); // Refresca si regresa
+            }
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -99,9 +125,7 @@ class _BookDetailViewState extends State<BookDetailView> with SingleTickerProvid
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.add_shopping_cart, color: Colors.black),
                           label: const Text("Add to Cart", style: TextStyle(color: Colors.black)),
-                          onPressed: () {
-                            // TODO: lógica de carrito
-                          },
+                          onPressed: _addToCartAndNavigate,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFB6EB7A),
                             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -139,6 +163,7 @@ class _BookImageSection extends StatelessWidget {
   final bool loadingImage;
   final String? imageUrl;
   const _BookImageSection({Key? key, required this.loadingImage, required this.imageUrl}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     if (loadingImage) {
@@ -150,12 +175,13 @@ class _BookImageSection extends StatelessWidget {
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          imageUrl!,
+        child: CachedNetworkImage(
+          imageUrl: imageUrl!,
           width: 160,
           height: 220,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 100),
+          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+          errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 100),
         ),
       );
     } else {
@@ -168,6 +194,7 @@ class _BookDetailsSection extends StatelessWidget {
   final Book book;
   final Listing listing;
   const _BookDetailsSection({Key? key, required this.book, required this.listing}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Column(

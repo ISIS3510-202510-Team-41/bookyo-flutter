@@ -7,8 +7,8 @@ import 'package:amplify_storage_s3/amplify_storage_s3.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 
-import 'package:hive_flutter/hive_flutter.dart'; 
-import 'models/cached_image.dart';               
+import 'package:hive_flutter/hive_flutter.dart';
+import 'models/cached_image.dart';
 
 import 'models/ModelProvider.dart';
 import 'viewmodels/auth_vm.dart';
@@ -47,10 +47,11 @@ Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(CachedImageAdapter());
   await Hive.openBox<CachedImage>('cachedImages');
+  await Hive.openBox('cartBox'); // ✅ Caja sin tipo explícito
 
   await configureAmplify();
 
-  // 🔍 Verificar conectividad a internet (sin usar connectivity_plus)
+  // 🔍 Verificar conectividad a internet
   bool hasInternet = true;
   try {
     final session = await Amplify.Auth.fetchAuthSession();
